@@ -1,0 +1,23 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "required": ["winner", "reasons", "scores"],
+  "properties": {
+    "winner": { "enum": ["pro", "con"] },
+    "reasons": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "type": "string", "minLength": 20 }
+    },
+    "scores": {
+      "type": "object",
+      "required": ["pro", "con"],
+      "properties": {
+        "pro": { "type": "number", "minimum": 0, "maximum": 100 },
+        "con": { "type": "number", "minimum": 0, "maximum": 100 }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}

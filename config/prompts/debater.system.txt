@@ -1,0 +1,1 @@
+# TODO(P6): Debater system prompt — stance template for Pro/Con agents.

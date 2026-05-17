@@ -1,0 +1,19 @@
+{
+  "rounds": 10,
+  "model": "gpt-4o-mini",
+  "temperature": 0.7,
+  "max_tokens_per_turn": 800,
+  "max_tokens_per_debate": 60000,
+  "max_usd_per_debate": 1.5,
+  "max_requests_per_minute": 30,
+  "heartbeat_sec": 5,
+  "heartbeat_timeout_sec": 3,
+  "max_restarts_per_child": 2,
+  "max_message_bytes": 65536,
+  "max_clock_skew_sec": 300,
+  "search": {
+    "provider": "tavily",
+    "max_results": 5,
+    "cache": true
+  }
+}
