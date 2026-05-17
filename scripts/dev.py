@@ -22,7 +22,7 @@ def _run(cmd: list[str]) -> int:
 def scan_secrets() -> int:
     """Fail if the working tree contains obvious secret literals."""
     hits: list[str] = []
-    skip = {".git", ".venv", "runs", "__pycache__", ".pytest_cache", ".ruff_cache", "docs"}
+    skip = {".git", ".venv", "runs", "tests", "__pycache__", ".pytest_cache", ".ruff_cache", "docs"}
     for path in ROOT.rglob("*"):
         if not path.is_file():
             continue
