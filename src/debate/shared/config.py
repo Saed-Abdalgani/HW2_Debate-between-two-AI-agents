@@ -28,6 +28,9 @@ _INT_KEYS = frozenset(
         "max_requests_per_minute",
         "max_restarts_per_child",
         "max_message_bytes",
+        "max_retries",
+        "summary_max_tokens",
+        "search_cache_max_entries",
     }
 )
 _FLOAT_KEYS = frozenset(
@@ -37,6 +40,9 @@ _FLOAT_KEYS = frozenset(
         "heartbeat_sec",
         "heartbeat_timeout_sec",
         "max_clock_skew_sec",
+        "retry_initial_delay_sec",
+        "retry_jitter_sec",
+        "token_drift_warn_threshold",
     }
 )
 
@@ -70,6 +76,14 @@ class Config(BaseModel):
     max_restarts_per_child: int = Field(ge=0)
     max_message_bytes: int = Field(ge=1)
     max_clock_skew_sec: float = Field(ge=0)
+    max_retries: int = Field(ge=0)
+    retry_initial_delay_sec: float = Field(ge=0)
+    retry_jitter_sec: float = Field(ge=0)
+    token_drift_warn_threshold: float = Field(ge=0, le=1)
+    summary_max_tokens: int = Field(ge=1)
+    search_cache_max_entries: int = Field(ge=1)
+    score_model: str = Field(min_length=1)
+    judge_model: str = Field(min_length=1)
     search: SearchConfig
 
 

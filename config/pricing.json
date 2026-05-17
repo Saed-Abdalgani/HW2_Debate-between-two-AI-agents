@@ -1,0 +1,14 @@
+{
+  "gpt-4o-mini": {
+    "input_usd_per_1k": "0.000150",
+    "output_usd_per_1k": "0.000600"
+  },
+  "gpt-4o": {
+    "input_usd_per_1k": "0.002500",
+    "output_usd_per_1k": "0.010000"
+  },
+  "search": {
+    "input_usd_per_1k": "0.000000",
+    "output_usd_per_1k": "0.000000"
+  }
+}
