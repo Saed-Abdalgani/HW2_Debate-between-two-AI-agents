@@ -1,1 +1,3 @@
-"""SDK layer — provider clients and IPC schemas."""
+"""SDK layer — import submodules directly to avoid import cycles."""
+
+__all__: list[str] = []

@@ -7,16 +7,12 @@ from typing import Any
 
 import pytest
 
+from debate.sdk.llm_client import ChatResult
 from debate.sdk.payloads import SearchHit, ToolCallPayload
 from debate.shared.config import load_config
 from debate.shared.gatekeeper import Gatekeeper
 from debate.shared.router import SkillRouter
-from debate.shared.skills import (
-    ChatResult,
-    make_score_skill,
-    make_search_skill,
-    make_summarise_skill,
-)
+from debate.shared.skills import make_score_skill, make_search_skill, make_summarise_skill
 
 
 @dataclass
@@ -35,7 +31,12 @@ class _StubLLM:
     tokens_out: int = 5
 
     def chat(self, messages: list[dict[str, Any]], max_tokens: int) -> ChatResult:
-        return ChatResult(text=self.response, tokens_in=self.tokens_in, tokens_out=self.tokens_out)
+        return ChatResult(
+            text=self.response,
+            tokens_in=self.tokens_in,
+            tokens_out=self.tokens_out,
+            model="gpt-4o-mini",
+        )
 
 
 @pytest.fixture

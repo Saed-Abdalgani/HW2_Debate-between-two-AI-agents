@@ -19,6 +19,8 @@
   "search_cache_max_entries": 128,
   "score_model": "gpt-4o-mini",
   "judge_model": "gpt-4o-mini",
+  "http_timeout_sec": 30,
+  "search_snippet_max_chars": 500,
   "search": {
     "provider": "tavily",
     "max_results": 5,

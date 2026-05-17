@@ -11,22 +11,17 @@ bypass (P3.6); cache misses still pay the Gatekeeper tax.
 from __future__ import annotations
 
 from collections.abc import Callable
-from dataclasses import dataclass
 from decimal import Decimal
-from typing import Any, Protocol
+from typing import TYPE_CHECKING, Any, Protocol
 
 from debate.sdk.payloads import ScorePayload, SearchHit, ToolResultPayload
+
+if TYPE_CHECKING:
+    from debate.sdk.llm_client import ChatResult
 from debate.shared.budget import Usage
 from debate.shared.gatekeeper import Gatekeeper
 
 _SEARCH_BILLING_MODEL = "search"
-
-
-@dataclass(frozen=True)
-class ChatResult:
-    text: str
-    tokens_in: int
-    tokens_out: int
 
 
 class LLMClientProto(Protocol):

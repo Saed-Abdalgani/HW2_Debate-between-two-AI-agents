@@ -31,6 +31,7 @@ _INT_KEYS = frozenset(
         "max_retries",
         "summary_max_tokens",
         "search_cache_max_entries",
+        "search_snippet_max_chars",
     }
 )
 _FLOAT_KEYS = frozenset(
@@ -43,6 +44,7 @@ _FLOAT_KEYS = frozenset(
         "retry_initial_delay_sec",
         "retry_jitter_sec",
         "token_drift_warn_threshold",
+        "http_timeout_sec",
     }
 )
 
@@ -84,6 +86,8 @@ class Config(BaseModel):
     search_cache_max_entries: int = Field(ge=1)
     score_model: str = Field(min_length=1)
     judge_model: str = Field(min_length=1)
+    http_timeout_sec: float = Field(gt=0)
+    search_snippet_max_chars: int = Field(ge=1)
     search: SearchConfig
 
 

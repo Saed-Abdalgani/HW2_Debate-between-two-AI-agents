@@ -9,6 +9,8 @@ from dataclasses import dataclass, field
 from decimal import Decimal
 from typing import Any
 
+from debate.sdk.errors import PermanentProviderError, TransientProviderError  # noqa: F401
+
 
 class BudgetExceeded(Exception):
     """Raised when a call would breach a configured cap."""
@@ -17,10 +19,6 @@ class BudgetExceeded(Exception):
         self.reason = reason
         self.snapshot = snapshot
         super().__init__(reason)
-
-
-class TransientProviderError(Exception):
-    """HTTP 429 / 5xx / timeout — Gatekeeper may retry."""
 
 
 @dataclass(frozen=True)
