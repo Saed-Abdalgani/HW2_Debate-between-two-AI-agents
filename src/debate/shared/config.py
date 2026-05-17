@@ -32,6 +32,7 @@ _INT_KEYS = frozenset(
         "summary_max_tokens",
         "search_cache_max_entries",
         "search_snippet_max_chars",
+        "heartbeat_max_consecutive_misses",
     }
 )
 _FLOAT_KEYS = frozenset(
@@ -45,6 +46,8 @@ _FLOAT_KEYS = frozenset(
         "retry_jitter_sec",
         "token_drift_warn_threshold",
         "http_timeout_sec",
+        "child_terminate_grace_sec",
+        "recv_default_timeout_sec",
     }
 )
 
@@ -75,6 +78,9 @@ class Config(BaseModel):
     max_requests_per_minute: int = Field(ge=1)
     heartbeat_sec: float = Field(gt=0)
     heartbeat_timeout_sec: float = Field(gt=0)
+    heartbeat_max_consecutive_misses: int = Field(ge=1)
+    child_terminate_grace_sec: float = Field(gt=0)
+    recv_default_timeout_sec: float = Field(gt=0)
     max_restarts_per_child: int = Field(ge=0)
     max_message_bytes: int = Field(ge=1)
     max_clock_skew_sec: float = Field(ge=0)
