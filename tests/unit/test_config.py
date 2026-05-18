@@ -35,6 +35,7 @@ _VALID = {
     "judge_model": "gpt-4o-mini",
     "http_timeout_sec": 30,
     "search_snippet_max_chars": 500,
+    "max_tool_calls_per_turn": 2,
     "search": {"provider": "tavily", "max_results": 5, "cache": True},
 }
 

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "C:\Users\User\Desktop\ai hw\HW2_Debate-between-two-AI-agents\src\debate\agents\pro_agent.py", line 11, in <module>
+    ProAgent.bootstrap()
+    ~~~~~~~~~~~~~~~~~~^^
+  File "C:\Users\User\Desktop\ai hw\HW2_Debate-between-two-AI-agents\src\debate\agents\debater_agent.py", line 198, in bootstrap
+    writer = JsonPipeWriter(sys.stdout.buffer.raw)
+                            ^^^^^^^^^^^^^^^^^^^^^
+AttributeError: '_io.FileIO' object has no attribute 'raw'

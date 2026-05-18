@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import os
 import subprocess
 import threading
 from pathlib import Path
@@ -49,8 +50,15 @@ class ChildProc:
 
     def _drain_stderr(self, stream: IO[bytes], path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
+        if path.is_dir():
+            return
+        flags = os.O_APPEND | os.O_CREAT | os.O_WRONLY
         try:
-            with path.open("ab") as fh:
+            fd = os.open(path, flags, 0o644)
+        except OSError:
+            return
+        try:
+            with os.fdopen(fd, "wb") as fh:
                 while True:
                     chunk = stream.read(4096)
                     if not chunk:

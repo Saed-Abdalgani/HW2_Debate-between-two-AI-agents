@@ -47,7 +47,8 @@ class Supervisor:
     def spawn(self, role: str, argv: Sequence[str] | None = None) -> ChildProc:
         if role in self._children:
             raise SpawnError(f"role already running: {role}")
-        cmd = list(argv) if argv else [sys.executable, "-m", f"debate.agents.{role}_agent"]
+        self.stderr_dir.mkdir(parents=True, exist_ok=True)
+        cmd = list(argv) if argv else self._default_argv(role)
         env = self._safe_child_env()
         try:
             proc = subprocess.Popen(
@@ -122,3 +123,13 @@ class Supervisor:
         for name in _STRIP_FROM_CHILD_ENV:
             env.pop(name, None)
         return env
+
+    @staticmethod
+    def _default_argv(role: str) -> list[str]:
+        """Run agent script directly so ``__main__`` bootstrap fires (runpy-safe)."""
+        import importlib.util
+
+        spec = importlib.util.find_spec(f"debate.agents.{role}_agent")
+        if spec is None or not spec.origin:
+            raise SpawnError(f"agent module not found: {role}")
+        return [sys.executable, "-u", spec.origin]

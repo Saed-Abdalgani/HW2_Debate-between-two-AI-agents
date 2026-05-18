@@ -33,6 +33,7 @@ _INT_KEYS = frozenset(
         "search_cache_max_entries",
         "search_snippet_max_chars",
         "heartbeat_max_consecutive_misses",
+        "max_tool_calls_per_turn",
     }
 )
 _FLOAT_KEYS = frozenset(
@@ -94,6 +95,7 @@ class Config(BaseModel):
     judge_model: str = Field(min_length=1)
     http_timeout_sec: float = Field(gt=0)
     search_snippet_max_chars: int = Field(ge=1)
+    max_tool_calls_per_turn: int = Field(ge=0, default=2)
     search: SearchConfig
 
 
