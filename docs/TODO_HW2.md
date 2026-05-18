@@ -4,8 +4,8 @@
 |----------|----------------------------------------|
 | Document | TODO_HW2.md                            |
 | Version  | 1.00                                   |
-| Status   | Draft — Bootstrap                      |
-| Updated  | 2026-05-17                             |
+| Status   | P0–P8 complete; P9 pending              |
+| Updated  | 2026-05-18                             |
 | Pairs    | `docs/PRD_HW2.md`, `docs/PLAN_HW2.md`  |
 | Owner    | Senior Architect                       |
 
@@ -53,65 +53,65 @@ green on a stub package.
 
 ### P0.1 Project Scaffold
 
-- [ ] **M** Initialise repo: `uv init --package debate` at the workspace
+- [x] **M** Initialise repo: `uv init --package debate` at the workspace
   root. Trace: §2, NFR-19.
-- [ ] **M** Create directory tree exactly as per `PLAN_HW2.md` §2:
+- [x] **M** Create directory tree exactly as per `PLAN_HW2.md` §2:
   `src/debate/{sdk,agents,orchestration,shared,ui}`, `tests/{unit,integration}`,
   `config/prompts`, `docs`, `runs` (gitignored).
-- [ ] **M** Add empty `__init__.py` in every package directory.
-- [ ] **M** Add a stub `src/debate/main.py` that prints
+- [x] **M** Add empty `__init__.py` in every package directory.
+- [x] **M** Add a stub `src/debate/main.py` that prints
   `"HW2 Debate scaffold OK"` and exits 0 so `uv run python -m debate.main`
   works on day one.
 
 ### P0.2 Toolchain Configuration
 
-- [ ] **M** `uv add pydantic httpx python-dotenv jsonschema rich`
+- [x] **M** `uv add pydantic httpx python-dotenv jsonschema rich`
   (runtime). Trace: PLAN §7.1.
-- [ ] **M** `uv add --dev ruff pytest pytest-asyncio pytest-cov`.
-- [ ] **M** `pyproject.toml` → `[tool.ruff]` block: line-length 100,
+- [x] **M** `uv add --dev ruff pytest pytest-asyncio pytest-cov`.
+- [x] **M** `pyproject.toml` → `[tool.ruff]` block: line-length 100,
   rule sets `E, F, I, UP, B, SIM, RUF`, double-quote style. Trace: PLAN §7.2.
-- [ ] **M** `pyproject.toml` → `[tool.pytest.ini_options]`: `testpaths =
+- [x] **M** `pyproject.toml` → `[tool.pytest.ini_options]`: `testpaths =
   ["tests"]`, `addopts = "-ra -q --strict-markers"`, register markers
   `unit`, `integration`, `chaos`.
-- [ ] **M** `pyproject.toml` → `[tool.coverage.run]` with `source =
+- [x] **M** `pyproject.toml` → `[tool.coverage.run]` with `source =
   ["src/debate"]`; gate `--cov-fail-under=80` on the deterministic core
   (PLAN §7.3).
-- [ ] **S** Add a `scripts/dev.py` helper (`uv run python scripts/dev.py
+- [x] **S** Add a `scripts/dev.py` helper (`uv run python scripts/dev.py
   {lint|test|run}`) so the menu can invoke each step uniformly.
 
 ### P0.3 Config & Secrets Skeleton
 
-- [ ] **M** Create `config/debate.json` with the exact keys listed in
+- [x] **M** Create `config/debate.json` with the exact keys listed in
   PRD §8 (`rounds`, `model`, `temperature`, `max_tokens_per_turn`,
   `max_tokens_per_debate`, `max_usd_per_debate`,
   `max_requests_per_minute`, `heartbeat_sec`, `heartbeat_timeout_sec`,
   `max_restarts_per_child`, `max_message_bytes`, `search.*`). Trace: NFR-18.
-- [ ] **M** Create `config/motions.json` with ≥ 5 starter motions.
+- [x] **M** Create `config/motions.json` with ≥ 5 starter motions.
   Trace: FR-1.
-- [ ] **M** Create `config/prompts/judge.system.txt`,
+- [x] **M** Create `config/prompts/judge.system.txt`,
   `debater.system.txt`, `verdict.schema.json` as empty placeholders with
   a TODO marker. Trace: FR-8, §6.3.
-- [ ] **M** Create `.env-example` containing **names only** for
+- [x] **M** Create `.env-example` containing **names only** for
   `LLM_API_KEY`, `SEARCH_API_KEY`, `LOG_LEVEL`. Trace: NFR-10.
-- [ ] **M** `.gitignore` covers `.env`, `runs/`, `.venv/`, `__pycache__/`,
+- [x] **M** `.gitignore` covers `.env`, `runs/`, `.venv/`, `__pycache__/`,
   `.pytest_cache/`, `.ruff_cache/`, `*.egg-info/`. Trace: NFR-10.
 
 ### P0.4 Defensive / Compliance
 
-- [ ] **M** Add a CI-grade pre-commit (or `scripts/dev.py check`) that
+- [x] **M** Add a CI-grade pre-commit (or `scripts/dev.py check`) that
   fails if any tracked file matches `LLM_API_KEY=[^ \n]+` or
   `sk-[A-Za-z0-9]{20,}` (basic secret regex). Trace: NFR-11, SC-5.
-- [ ] **S** Add `LICENSE` (per course policy) and a one-paragraph
+- [x] **S** Add `LICENSE` (per course policy) and a one-paragraph
   `README.md` stub — full lab report comes in P9.
 
 ### P0 — Definition of Done
 
-- [ ] `uv sync` succeeds on a clean checkout.
-- [ ] `uv run python -m debate.main` prints the stub banner.
-- [ ] `uv run ruff check` and `uv run ruff format --check` are green.
-- [ ] `uv run pytest -q` returns "no tests ran" (0 errors).
-- [ ] `git status` shows no tracked `.env`, no `runs/` artefacts.
-- [ ] Secret-regex scan passes on the working tree.
+- [x] `uv sync` succeeds on a clean checkout.
+- [x] `uv run python -m debate.main` prints the stub banner.
+- [x] `uv run ruff check` and `uv run ruff format --check` are green.
+- [x] `uv run pytest -q` returns "no tests ran" (0 errors).
+- [x] `git status` shows no tracked `.env`, no `runs/` artefacts.
+- [x] Secret-regex scan passes on the working tree.
 
 ---
 
@@ -123,73 +123,73 @@ rejected.
 
 ### P1.1 Envelope & Message Models (`src/debate/sdk/schemas.py`)
 
-- [ ] **M** Implement `Envelope` (pydantic `BaseModel`) with fields
+- [x] **M** Implement `Envelope` (pydantic `BaseModel`) with fields
   `v: int`, `ts: datetime`, `turn_id: int`, `role: Role`,
   `type: MessageType`, `payload: dict`. Trace: PLAN §6.1.
-- [ ] **M** Implement enums `Role = {judge, pro, con}` and `MessageType`
+- [x] **M** Implement enums `Role = {judge, pro, con}` and `MessageType`
   covering all 10 types in PLAN §6.2 (`init, prompt, reply, tool_call,
   tool_result, ping, pong, score, verdict, event, shutdown`).
-- [ ] **M** Implement sub-payload models, one per `MessageType`:
+- [x] **M** Implement sub-payload models, one per `MessageType`:
   `InitPayload`, `PromptPayload`, `ReplyPayload`, `ToolCallPayload`,
   `ToolResultPayload`, `PingPayload`, `PongPayload`, `ScorePayload`,
   `VerdictPayload`, `EventPayload`, `ShutdownPayload`. Trace: PLAN §6.2.
-- [ ] **M** Implement a discriminated-union loader
+- [x] **M** Implement a discriminated-union loader
   `parse_envelope(line: str) -> Envelope` that selects the correct
   sub-payload by `type` and validates strictly (`extra="forbid"`).
-- [ ] **M** Constant `SCHEMA_VERSION = 1` (architectural constant — the
+- [x] **M** Constant `SCHEMA_VERSION = 1` (architectural constant — the
   only numeric literal allowed in source per NFR-18).
-- [ ] **M** Helper `serialize(env: Envelope) -> str` that emits **single
+- [x] **M** Helper `serialize(env: Envelope) -> str` that emits **single
   line** UTF-8 JSON terminated by `\n` (FR-4).
 
 ### P1.2 Verdict JSON Schema
 
-- [ ] **M** Author `config/prompts/verdict.schema.json` exactly as in
+- [x] **M** Author `config/prompts/verdict.schema.json` exactly as in
   PLAN §6.3 (`winner` enum excludes `"tie"`, `reasons.minItems=3`,
   scores 0–100). Trace: FR-8, SC-2.
-- [ ] **M** Loader in `schemas.py` validates a Judge reply against this
+- [x] **M** Loader in `schemas.py` validates a Judge reply against this
   JSON Schema and returns a typed `VerdictPayload` or raises
   `VerdictValidationError`.
 
 ### P1.3 Defensive Programming
 
-- [ ] **M** Reject envelopes with `v != SCHEMA_VERSION` (clear error
+- [x] **M** Reject envelopes with `v != SCHEMA_VERSION` (clear error
   message naming both versions).
-- [ ] **M** Reject lines whose **byte length** exceeds
+- [x] **M** Reject lines whose **byte length** exceeds
   `cfg.max_message_bytes` *before* JSON parsing — defence against payload
   inflation. Trace: NFR-13.
-- [ ] **M** Reject `ts` values whose skew vs. wall clock exceeds
+- [x] **M** Reject `ts` values whose skew vs. wall clock exceeds
   ± `cfg.max_clock_skew_sec` (add to config).
-- [ ] **M** Refuse `\n` characters inside payload strings during
+- [x] **M** Refuse `\n` characters inside payload strings during
   serialisation (would break line framing).
 
 ### P1.4 Tests (`tests/unit/test_schemas.py`)
 
-- [ ] **M** Happy-path round-trip for **each** of the 10 message types.
-- [ ] **M** Reject unknown `type`.
-- [ ] **M** Reject mismatched `v`.
-- [ ] **M** Reject oversize line (`max_message_bytes + 1`).
-- [ ] **M** Reject `verdict.winner == "tie"`.
-- [ ] **M** Reject `verdict.reasons` with < 3 items, or any item
+- [x] **M** Happy-path round-trip for **each** of the 10 message types.
+- [x] **M** Reject unknown `type`.
+- [x] **M** Reject mismatched `v`.
+- [x] **M** Reject oversize line (`max_message_bytes + 1`).
+- [x] **M** Reject `verdict.winner == "tie"`.
+- [x] **M** Reject `verdict.reasons` with < 3 items, or any item
   shorter than the schema minimum.
-- [ ] **M** Reject `extra` fields (`extra="forbid"`).
-- [ ] **M** Reject envelope with embedded `\n` in payload.
-- [ ] **S** Property test (Hypothesis, optional) for random valid
+- [x] **M** Reject `extra` fields (`extra="forbid"`).
+- [x] **M** Reject envelope with embedded `\n` in payload.
+- [x] **S** Property test (Hypothesis, optional) for random valid
   envelopes round-tripping byte-identical.
 
 ### P1.5 Documentation
 
-- [ ] **M** Docstrings on every public model and helper describing the
+- [x] **M** Docstrings on every public model and helper describing the
   message direction (Judge → Child, Child → Judge, internal-only).
-- [ ] **S** Add a Mermaid sequence excerpt in the module docstring
+- [x] **S** Add a Mermaid sequence excerpt in the module docstring
   showing a typical turn.
 
 ### P1 — Definition of Done
 
-- [ ] All 10 message types serialise & validate.
-- [ ] Verdict JSON Schema rejects `"tie"` and short/sparse reasons.
-- [ ] `tests/unit/test_schemas.py` ≥ 15 cases, all green.
-- [ ] Coverage of `sdk/schemas.py` ≥ 95 %.
-- [ ] No magic numbers in `schemas.py` other than `SCHEMA_VERSION`.
+- [x] All 10 message types serialise & validate.
+- [x] Verdict JSON Schema rejects `"tie"` and short/sparse reasons.
+- [x] `tests/unit/test_schemas.py` ≥ 15 cases, all green.
+- [x] Coverage of `sdk/schemas.py` ≥ 95 %.
+- [x] No magic numbers in `schemas.py` other than `SCHEMA_VERSION`.
 
 ---
 
@@ -201,70 +201,70 @@ redacts.
 
 ### P2.1 Config Loader (`src/debate/shared/config.py`)
 
-- [ ] **M** `Config` pydantic model mirroring `config/debate.json` (PRD §8).
+- [x] **M** `Config` pydantic model mirroring `config/debate.json` (PRD §8).
   Strict types, range validators (`rounds >= 1`,
   `0 < temperature <= 2`, `max_usd_per_debate > 0`, etc.).
-- [ ] **M** `load_config(path: Path) -> Config` reads JSON, then overlays
+- [x] **M** `load_config(path: Path) -> Config` reads JSON, then overlays
   `.env` via `python-dotenv`. Env wins over JSON for overlap.
-- [ ] **M** Fail fast with a single aggregated `ConfigError` listing
+- [x] **M** Fail fast with a single aggregated `ConfigError` listing
   **all** validation issues (not just the first).
-- [ ] **S** Support `DEBATE_CONFIG=path/to/override.json` env override
+- [x] **S** Support `DEBATE_CONFIG=path/to/override.json` env override
   for tests and CI.
 
 ### P2.2 Secrets Vault (`src/debate/shared/secrets.py`)
 
-- [ ] **M** `get_key(name: str) -> str` — the **only** sanctioned key
+- [x] **M** `get_key(name: str) -> str` — the **only** sanctioned key
   accessor. Raises `MissingSecretError` with the env-var name (never
   the value). Trace: NFR-10.
-- [ ] **M** `redact(payload: dict|str) -> dict|str` that masks any value
+- [x] **M** `redact(payload: dict|str) -> dict|str` that masks any value
   matching the secret allow-list regex set
   (`LLM_API_KEY`, `SEARCH_API_KEY`, `sk-…`, `Bearer …`). Trace: NFR-11.
-- [ ] **M** Module-level guard: importing `secrets.py` does **not** read
+- [x] **M** Module-level guard: importing `secrets.py` does **not** read
   any key at import time (no side effects).
 
 ### P2.3 Structured Logger (`src/debate/shared/logger.py`)
 
-- [ ] **M** JSONL writer: one record per line with fields `ts`, `role`,
+- [x] **M** JSONL writer: one record per line with fields `ts`, `role`,
   `turn_id`, `event_type`, `tokens_in`, `tokens_out`, `usd_cost`,
   `data`. Trace: NFR-15.
-- [ ] **M** `Logger.event(name, **fields)` convenience.
-- [ ] **M** Every write passes through `redact()` first.
-- [ ] **M** Per-run output directory `runs/<ts>/run.jsonl`, with
+- [x] **M** `Logger.event(name, **fields)` convenience.
+- [x] **M** Every write passes through `redact()` first.
+- [x] **M** Per-run output directory `runs/<ts>/run.jsonl`, with
   `<role>.stderr.log` siblings. Trace: NFR-9, FR-10.
-- [ ] **S** Terminal mirror via `rich` (level-coloured) gated by
+- [x] **S** Terminal mirror via `rich` (level-coloured) gated by
   `LOG_LEVEL`.
 
 ### P2.4 Defensive Programming
 
-- [ ] **M** Logger flushes after every write (debate-grade durability
+- [x] **M** Logger flushes after every write (debate-grade durability
   even on hard crash).
-- [ ] **M** Logger refuses to open a `runs/` directory outside the
+- [x] **M** Logger refuses to open a `runs/` directory outside the
   project root (path traversal guard).
-- [ ] **M** Config loader rejects unknown top-level keys (forbids drift
+- [x] **M** Config loader rejects unknown top-level keys (forbids drift
   between code and JSON).
 
 ### P2.5 Tests
 
-- [ ] **M** `tests/unit/test_config.py` — valid config loads; bad ranges
+- [x] **M** `tests/unit/test_config.py` — valid config loads; bad ranges
   rejected; aggregated errors; env override wins.
-- [ ] **M** `tests/unit/test_secrets.py` — `get_key` raises clean error
+- [x] **M** `tests/unit/test_secrets.py` — `get_key` raises clean error
   when unset; `redact()` masks each pattern; redaction is idempotent.
-- [ ] **M** `tests/unit/test_logger.py` — JSONL is valid line-by-line;
+- [x] **M** `tests/unit/test_logger.py` — JSONL is valid line-by-line;
   secrets in inputs never appear in output bytes; path traversal blocked.
 
 ### P2.6 Security Checkpoint
 
-- [ ] **M** Audit: `grep -R "os.environ\[" src/` returns hits **only**
+- [x] **M** Audit: `grep -R "os.environ\[" src/` returns hits **only**
   in `secrets.py`. (Centralised key custody — NFR-10.)
-- [ ] **M** Audit: `grep -R "print(" src/` returns no hits (logger
+- [x] **M** Audit: `grep -R "print(" src/` returns no hits (logger
   only).
 
 ### P2 — Definition of Done
 
-- [ ] `Config` validates and rejects the 4 required bad-range cases.
-- [ ] `redact()` masks all 4 secret patterns in a fuzz test.
-- [ ] Logger writes valid JSONL with redacted payloads, flushed per line.
-- [ ] All P2 tests green; coverage of `shared/` ≥ 90 %.
+- [x] `Config` validates and rejects the 4 required bad-range cases.
+- [x] `redact()` masks all 4 secret patterns in a fuzz test.
+- [x] Logger writes valid JSONL with redacted payloads, flushed per line.
+- [x] All P2 tests green; coverage of `shared/` ≥ 90 %.
 
 ---
 
@@ -277,120 +277,120 @@ repeat query.
 
 ### P3.1 Ledger (`src/debate/shared/gatekeeper.py`)
 
-- [ ] **M** `Ledger` dataclass: `tokens_in`, `tokens_out`,
+- [x] **M** `Ledger` dataclass: `tokens_in`, `tokens_out`,
   `usd_spent`, `requests`, `started_at`, `requests_window` (deque of
   timestamps for RPM enforcement). Trace: NFR-2, NFR-3.
-- [ ] **M** Methods `add(usage: Usage)`, `snapshot() -> dict`,
+- [x] **M** Methods `add(usage: Usage)`, `snapshot() -> dict`,
   `would_exceed(estimate: Usage) -> Reason | None`.
-- [ ] **M** RPM check: count timestamps in the trailing 60 s window;
+- [x] **M** RPM check: count timestamps in the trailing 60 s window;
   reject if `>= cfg.max_requests_per_minute`.
 
 ### P3.2 Token Counting
 
-- [ ] **M** `estimate_tokens(messages, model) -> int` — use `tiktoken`
+- [x] **M** `estimate_tokens(messages, model) -> int` — use `tiktoken`
   (add via `uv add tiktoken`) keyed by `cfg.model`; fall back to
   `len(text) / 4` heuristic if the encoder is unknown. Document the
   heuristic in the docstring.
-- [ ] **M** **Pre-call** estimate enforced against `max_tokens_per_turn`
+- [x] **M** **Pre-call** estimate enforced against `max_tokens_per_turn`
   and `max_tokens_per_debate`; rejected calls **never** dispatch.
-- [ ] **M** **Post-call** reconciliation: the LLM provider's reported
+- [x] **M** **Post-call** reconciliation: the LLM provider's reported
   `usage` overwrites the estimate in the ledger (truth wins).
-- [ ] **S** Warn (single log line) if estimate vs. actual diverges by
+- [x] **S** Warn (single log line) if estimate vs. actual diverges by
   > 20 % — feedback signal that the encoder choice is wrong.
 
 ### P3.3 USD Conversion
 
-- [ ] **M** `config/pricing.json` — per-model `{input_usd_per_1k,
+- [x] **M** `config/pricing.json` — per-model `{input_usd_per_1k,
   output_usd_per_1k}`. Versioned alongside code. Trace: NFR-18.
-- [ ] **M** `price(usage, model) -> Decimal` using `decimal.Decimal`
+- [x] **M** `price(usage, model) -> Decimal` using `decimal.Decimal`
   (never float — money). Round half-up to 6 dp.
-- [ ] **M** Reject any model not present in `pricing.json` rather than
+- [x] **M** Reject any model not present in `pricing.json` rather than
   silently charging $0.
-- [ ] **M** Pre-call USD estimate uses *expected* output tokens =
+- [x] **M** Pre-call USD estimate uses *expected* output tokens =
   `cfg.max_tokens_per_turn`; post-call reconciles to actual.
 
 ### P3.4 `Gatekeeper.execute(callable, *, estimate, role, turn_id)`
 
-- [ ] **M** Wraps every external call (LLM + search). Single choke-point
+- [x] **M** Wraps every external call (LLM + search). Single choke-point
   — no module may bypass it. Trace: §4 anti-duplication rule 2.
-- [ ] **M** Workflow: `would_exceed` → call → `add` actual → log event
+- [x] **M** Workflow: `would_exceed` → call → `add` actual → log event
   with ledger snapshot → return result.
-- [ ] **M** On `BudgetExceeded`, emit a `budget_exhausted` event and
+- [x] **M** On `BudgetExceeded`, emit a `budget_exhausted` event and
   raise; the Judge's FSM catches this at the `any → ABORT` edge
   (PLAN §5).
-- [ ] **M** On transient provider error (HTTP 5xx / timeout / 429):
+- [x] **M** On transient provider error (HTTP 5xx / timeout / 429):
   exponential back-off with jitter, capped at `cfg.max_retries` (add to
   config), still accounted in the ledger.
 
 ### P3.5 Context Engineering — Select / Write
 
-- [ ] **M** `select_context(role, turn_id) -> list[Message]` returns the
+- [x] **M** `select_context(role, turn_id) -> list[Message]` returns the
   minimal slice: own last reply + opponent's last reply + rolling
   summary. Never the full transcript. Trace: NFR-4.
-- [ ] **M** `write_summary(role, turn_id, text)` persists to
+- [x] **M** `write_summary(role, turn_id, text)` persists to
   `runs/<ts>/summary.<role>.md`, appended turn-by-turn.
-- [ ] **M** Summary length capped at `cfg.summary_max_tokens` (add to
+- [x] **M** Summary length capped at `cfg.summary_max_tokens` (add to
   config); the Gatekeeper truncates oldest content first.
 
 ### P3.6 SkillRouter (`src/debate/shared/router.py`)
 
-- [ ] **M** `SkillRouter.register(name, fn)` and
+- [x] **M** `SkillRouter.register(name, fn)` and
   `dispatch(tool_call: ToolCallPayload) -> ToolResultPayload`.
-- [ ] **M** Built-in skills: `search` (wraps `SearchClient`),
+- [x] **M** Built-in skills: `search` (wraps `SearchClient`),
   `summarise` (wraps LLM with a fixed system prompt), `score` (wraps
   LLM with the scoring rubric).
-- [ ] **M** **Content-hash cache** for `search`:
+- [x] **M** **Content-hash cache** for `search`:
   `key = sha256(normalised_query + str(k)).hexdigest()`. Normalisation:
   Unicode-NFC, lower-case, collapse whitespace, strip URL fragments.
   Trace: NFR-5.
-- [ ] **M** Cache scope = single debate (instance-level dict); on
+- [x] **M** Cache scope = single debate (instance-level dict); on
   `cache hit` mark `cached: true` in the returned `ToolResultPayload`
   and **bypass** the Gatekeeper (zero token + zero RPM cost).
-- [ ] **M** Cache eviction: bounded to `cfg.search_cache_max_entries`,
+- [x] **M** Cache eviction: bounded to `cfg.search_cache_max_entries`,
   LRU-evicted. Document collision policy (SHA-256 collisions assumed
   impossible at this scale; equal keys imply equal content).
 
 ### P3.7 Defensive Programming
 
-- [ ] **M** `Gatekeeper.execute` is re-entrancy-safe via a `threading.RLock`
+- [x] **M** `Gatekeeper.execute` is re-entrancy-safe via a `threading.RLock`
   (the Watchdog thread can also hit it for `ping` accounting).
-- [ ] **M** All ledger mutations happen inside the lock; `snapshot()`
+- [x] **M** All ledger mutations happen inside the lock; `snapshot()`
   returns a deep copy.
-- [ ] **M** Router refuses unknown skill names with a typed error;
+- [x] **M** Router refuses unknown skill names with a typed error;
   malformed `ToolCallPayload.args` are rejected before dispatch.
 
 ### P3.8 Tests
 
-- [ ] **M** `tests/unit/test_gatekeeper.py` —
+- [x] **M** `tests/unit/test_gatekeeper.py` —
   - exact-boundary token cap (allow at `cap`, reject at `cap+1`),
   - USD cap with `Decimal` precision,
   - RPM windowing (29 inside, 31 rejects, monotonic clock),
   - `budget_exhausted` event shape,
   - retry/back-off honoured on 429.
-- [ ] **M** `tests/unit/test_router_cache.py` —
+- [x] **M** `tests/unit/test_router_cache.py` —
   - identical query → cache hit, `cached=true`,
   - whitespace/case differences normalised to same key,
   - different `k` produces different keys,
   - LRU eviction kicks in at `max_entries+1`,
   - hit bypasses Gatekeeper (assert no ledger delta).
-- [ ] **S** Concurrency stress: 100 threads dispatch identical query;
+- [x] **S** Concurrency stress: 100 threads dispatch identical query;
   exactly one upstream call observed.
 
 ### P3.9 Security & Compliance
 
-- [ ] **M** Audit: every outbound HTTPS call originates in
+- [x] **M** Audit: every outbound HTTPS call originates in
   `sdk/llm_client.py` or `sdk/search_client.py`, **invoked only** via
   `Gatekeeper.execute` (grep for direct `httpx.` outside SDK should be
   empty).
-- [ ] **M** Audit: cache values are redacted before any log write.
+- [x] **M** Audit: cache values are redacted before any log write.
 
 ### P3 — Definition of Done
 
-- [ ] Ledger maths exact under `Decimal`; no `float` for money.
-- [ ] Token estimate vs. actual reconciled and logged.
-- [ ] Cache hit rate ≥ 1 in the duplicate-query test, with zero
+- [x] Ledger maths exact under `Decimal`; no `float` for money.
+- [x] Token estimate vs. actual reconciled and logged.
+- [x] Cache hit rate ≥ 1 in the duplicate-query test, with zero
   Gatekeeper delta.
-- [ ] All P3 tests green; coverage of `gatekeeper.py` + `router.py` ≥ 90 %.
+- [x] All P3 tests green; coverage of `gatekeeper.py` + `router.py` ≥ 90 %.
 
 ---
 
@@ -402,58 +402,58 @@ test with stubs.
 
 ### P4.1 `sdk/llm_client.py`
 
-- [ ] **M** `LLMClient(model, temperature, http: httpx.Client)`; single
+- [x] **M** `LLMClient(model, temperature, http: httpx.Client)`; single
   public method `chat(messages, max_tokens) -> ChatResult` returning
   `(text, tokens_in, tokens_out, model)`. Trace: PLAN §4.
-- [ ] **M** `ChatResult` is a frozen dataclass; USD is computed by the
+- [x] **M** `ChatResult` is a frozen dataclass; USD is computed by the
   Gatekeeper from `pricing.json`, **not** by the SDK.
-- [ ] **M** Provider authentication header sourced via
+- [x] **M** Provider authentication header sourced via
   `secrets.get_key("LLM_API_KEY")`.
-- [ ] **M** Request/response logging redacts the `Authorization`
+- [x] **M** Request/response logging redacts the `Authorization`
   header.
-- [ ] **S** Allow `extra_headers` for org IDs etc., still redacted.
+- [x] **S** Allow `extra_headers` for org IDs etc., still redacted.
 
 ### P4.2 `sdk/search_client.py`
 
-- [ ] **M** `SearchClient(provider, http)` with `query(text, k) ->
+- [x] **M** `SearchClient(provider, http)` with `query(text, k) ->
   list[SearchHit]`. `SearchHit` = `(title, url, snippet)`.
-- [ ] **M** Truncate `snippet` to `cfg.search_snippet_max_chars` (add to
+- [x] **M** Truncate `snippet` to `cfg.search_snippet_max_chars` (add to
   config) — prompt-injection inflation defence. Trace: NFR-13.
-- [ ] **M** Strip non-printable / control characters from `title` and
+- [x] **M** Strip non-printable / control characters from `title` and
   `snippet`.
 
 ### P4.3 Defensive Programming
 
-- [ ] **M** Network timeouts: connect + read both from
+- [x] **M** Network timeouts: connect + read both from
   `cfg.http_timeout_sec` (add to config). No infinite hangs.
-- [ ] **M** Map HTTP 429 / 5xx to a typed `TransientProviderError` so
+- [x] **M** Map HTTP 429 / 5xx to a typed `TransientProviderError` so
   the Gatekeeper's retry policy can recognise it.
-- [ ] **M** Map HTTP 4xx (other than 429) to `PermanentProviderError`
+- [x] **M** Map HTTP 4xx (other than 429) to `PermanentProviderError`
   (no retries).
 
 ### P4.4 Tests
 
-- [ ] **M** `tests/unit/test_llm_client.py` against a `respx` /
+- [x] **M** `tests/unit/test_llm_client.py` against a `respx` /
   `httpx.MockTransport` — happy path, 429 → transient, 400 → permanent,
   timeout handling.
-- [ ] **M** `tests/unit/test_search_client.py` — snippet truncation,
+- [x] **M** `tests/unit/test_search_client.py` — snippet truncation,
   control-char stripping, malformed provider JSON rejected.
-- [ ] **S** `tests/integration/test_sdk_wired.py` — Gatekeeper +
+- [x] **S** `tests/integration/test_sdk_wired.py` — Gatekeeper +
   LLMClient + stub provider perform one round and ledger is updated
   correctly.
 
 ### P4.5 Security Checkpoint
 
-- [ ] **M** Audit: API keys never appear in `repr()` of any SDK object
+- [x] **M** Audit: API keys never appear in `repr()` of any SDK object
   (`__repr__` overridden where needed).
-- [ ] **M** Audit: no SDK module imports `os.environ` directly.
+- [x] **M** Audit: no SDK module imports `os.environ` directly.
 
 ### P4 — Definition of Done
 
-- [ ] LLMClient + SearchClient run end-to-end against a stub.
-- [ ] Gatekeeper-mediated integration test passes with realistic ledger
+- [x] LLMClient + SearchClient run end-to-end against a stub.
+- [x] Gatekeeper-mediated integration test passes with realistic ledger
   totals.
-- [ ] All P4 tests green; `respx` covers the four HTTP outcomes.
+- [x] All P4 tests green; `respx` covers the four HTTP outcomes.
 
 ---
 
@@ -465,108 +465,108 @@ with echo child.
 
 ### P5.1 IPC Layer (`src/debate/orchestration/ipc.py`)
 
-- [ ] **M** `JsonPipeReader(stream, max_bytes)` — line-buffered reader
+- [x] **M** `JsonPipeReader(stream, max_bytes)` — line-buffered reader
   that accumulates partial reads until `\n`; rejects lines exceeding
   `max_bytes`. Trace: NFR-13, FR-4.
-- [ ] **M** `JsonPipeWriter(stream)` — writes
+- [x] **M** `JsonPipeWriter(stream)` — writes
   `serialize(env) + "\n"` and flushes; raises `BrokenPipeError` cleanly
   on closed peer.
-- [ ] **M** On Windows / POSIX both: set child pipes to UTF-8
+- [x] **M** On Windows / POSIX both: set child pipes to UTF-8
   (`encoding="utf-8"`, `errors="strict"`), `bufsize=1` (line-buffered).
-- [ ] **M** Handle `BlockingIOError` from non-blocking reads with a
+- [x] **M** Handle `BlockingIOError` from non-blocking reads with a
   deadline (`select` on POSIX, `WaitForSingleObject` not required —
   rely on `selectors.DefaultSelector`).
-- [ ] **M** Partial-read test scenario: child writes 1-byte-at-a-time;
+- [x] **M** Partial-read test scenario: child writes 1-byte-at-a-time;
   reader still reconstructs a single envelope.
 
 ### P5.2 State Machine (`orchestration/state_machine.py`)
 
-- [ ] **M** Implement the FSM from PLAN §5 exactly: states `INIT,
+- [x] **M** Implement the FSM from PLAN §5 exactly: states `INIT,
   SPAWNING, OPENING, PRO_TURN, SCORE_PRO, CON_TURN, SCORE_CON,
   NEXT_ROUND, CLOSING, VERDICT, VALIDATE_VERDICT, TIE_BREAK, RECOVER,
   DONE, ABORT`.
-- [ ] **M** Pure function: `transition(state, event, ctx) -> state`.
+- [x] **M** Pure function: `transition(state, event, ctx) -> state`.
   No I/O, no LLM calls — trivially unit-testable.
-- [ ] **M** `ctx` tracks `round`, `verdict_retries`,
+- [x] **M** `ctx` tracks `round`, `verdict_retries`,
   `restarts_per_role`, `last_outbound_per_role` (for replay on respawn).
-- [ ] **M** Universal edge: any state → `ABORT` on `budget_exhausted`.
-- [ ] **M** `is_terminal(state) -> bool` for `{DONE, ABORT}`.
+- [x] **M** Universal edge: any state → `ABORT` on `budget_exhausted`.
+- [x] **M** `is_terminal(state) -> bool` for `{DONE, ABORT}`.
 
 ### P5.3 Supervisor (`orchestration/supervisor.py`)
 
-- [ ] **M** `Supervisor.spawn(role) -> ChildProc` — launches child via
+- [x] **M** `Supervisor.spawn(role) -> ChildProc` — launches child via
   `subprocess.Popen([sys.executable, "-m", "debate.agents." +
   role + "_agent"], stdin=PIPE, stdout=PIPE, stderr=PIPE)`.
-- [ ] **M** Inherited environment **strips** `SEARCH_API_KEY` for
+- [x] **M** Inherited environment **strips** `SEARCH_API_KEY` for
   child processes; only `LLM_API_KEY` passes through. Trace: NFR-12.
-- [ ] **M** `send(role, env)` / `recv(role, timeout)` route through
+- [x] **M** `send(role, env)` / `recv(role, timeout)` route through
   `JsonPipeReader/Writer`.
-- [ ] **M** stderr drained by a daemon thread that appends to
+- [x] **M** stderr drained by a daemon thread that appends to
   `runs/<ts>/<role>.stderr.log`. Trace: NFR-9.
-- [ ] **M** `terminate(role, grace_sec)`:
+- [x] **M** `terminate(role, grace_sec)`:
   `SIGTERM → wait(grace) → SIGKILL` (POSIX) / `terminate() → kill()`
   (Windows fallback). Trace: NFR-8.
-- [ ] **M** On Judge shutdown (SIGINT / normal exit), terminate **all**
+- [x] **M** On Judge shutdown (SIGINT / normal exit), terminate **all**
   children — no orphans. Use `atexit` + signal handlers.
 
 ### P5.4 Watchdog (`orchestration/watchdog.py`)
 
-- [ ] **M** Dedicated `threading.Thread` ticking every
+- [x] **M** Dedicated `threading.Thread` ticking every
   `cfg.heartbeat_sec`. Trace: NFR-6, NFR-7.
-- [ ] **M** Per role: send `ping`, await `pong` with matching
+- [x] **M** Per role: send `ping`, await `pong` with matching
   `turn_id` within `cfg.heartbeat_timeout_sec`.
-- [ ] **M** Miss policy: `cfg.heartbeat_max_consecutive_misses`
+- [x] **M** Miss policy: `cfg.heartbeat_max_consecutive_misses`
   consecutive misses (add to config; default 2) → invoke `on_miss(role)`
   callback (wired to Supervisor terminate+respawn).
-- [ ] **M** Restart counter per role; on
+- [x] **M** Restart counter per role; on
   `count > cfg.max_restarts_per_child` emit
   `child_unrecoverable` event and surface to FSM as
   `restarts_exhausted` (PLAN §5.2).
-- [ ] **M** After respawn the Judge replays the **last outbound** prompt
+- [x] **M** After respawn the Judge replays the **last outbound** prompt
   for that role (held in `ctx.last_outbound_per_role`).
-- [ ] **M** Watchdog stops cleanly on `DONE` / `ABORT`; `join(timeout)`
+- [x] **M** Watchdog stops cleanly on `DONE` / `ABORT`; `join(timeout)`
   before final exit to avoid daemon leakage.
 
 ### P5.5 Defensive Programming
 
-- [ ] **M** All `Popen` paths wrapped in `try/finally` that calls
+- [x] **M** All `Popen` paths wrapped in `try/finally` that calls
   `terminate(role)`; no leaked processes even if `__init__` raises.
-- [ ] **M** All `recv` calls have explicit timeouts (never `None`).
-- [ ] **M** `BrokenPipeError` from a dead child surfaces as a typed
+- [x] **M** All `recv` calls have explicit timeouts (never `None`).
+- [x] **M** `BrokenPipeError` from a dead child surfaces as a typed
   `ChildDisconnectedError`, handled by the Watchdog respawn path.
-- [ ] **M** POSIX signals: install `SIGPIPE → SIG_IGN` so a child crash
+- [x] **M** POSIX signals: install `SIGPIPE → SIG_IGN` so a child crash
   does not kill the Judge with the default handler.
 
 ### P5.6 Tests
 
-- [ ] **M** `tests/unit/test_state_machine.py` — every edge in PLAN §5
+- [x] **M** `tests/unit/test_state_machine.py` — every edge in PLAN §5
   exercised, including all three `VERDICT` outcomes and the universal
   `budget_exhausted → ABORT`.
-- [ ] **M** `tests/unit/test_ipc.py` — partial reads (1-byte chunks),
+- [x] **M** `tests/unit/test_ipc.py` — partial reads (1-byte chunks),
   oversize line rejection, broken-pipe detection, UTF-8 round-trip.
-- [ ] **M** `tests/integration/test_supervisor_echo.py` — spawn an
+- [x] **M** `tests/integration/test_supervisor_echo.py` — spawn an
   `echo_child` test fixture that echoes envelopes back; Supervisor
   exchanges 10 messages cleanly, then terminates child.
-- [ ] **M** `tests/unit/test_watchdog.py` — miss → respawn callback
+- [x] **M** `tests/unit/test_watchdog.py` — miss → respawn callback
   fires after exactly `max_consecutive_misses`; counter increments;
   exceeds limit → `child_unrecoverable` raised.
-- [ ] **S** `tests/integration/test_watchdog_kill.py` — spawn echo
+- [x] **S** `tests/integration/test_watchdog_kill.py` — spawn echo
   child, `os.kill(child.pid, SIGKILL)` mid-exchange, Watchdog respawns,
   next message succeeds.
 
 ### P5.7 Security Checkpoint
 
-- [ ] **M** Audit: child env excludes `SEARCH_API_KEY` (assert via
+- [x] **M** Audit: child env excludes `SEARCH_API_KEY` (assert via
   integration test that reads `os.environ` inside the echo child).
-- [ ] **M** Audit: stderr capture does not deadlock when child writes
+- [x] **M** Audit: stderr capture does not deadlock when child writes
   > 64 KiB of stderr (drainer thread proves it).
 
 ### P5 — Definition of Done
 
-- [ ] FSM unit tests cover 100 % of edges in PLAN §5.
-- [ ] Supervisor + echo child round-trip 10 envelopes in CI.
-- [ ] Watchdog respawn proven against `SIGKILL`.
-- [ ] No orphan processes after any test exits (verified by a pytest
+- [x] FSM unit tests cover 100 % of edges in PLAN §5.
+- [x] Supervisor + echo child round-trip 10 envelopes in CI.
+- [x] Watchdog respawn proven against `SIGKILL`.
+- [x] No orphan processes after any test exits (verified by a pytest
   fixture that snapshots child PIDs pre/post).
 
 ---
@@ -579,76 +579,76 @@ driver.
 
 ### P6.1 `agents/base_agent.py` (abstract)
 
-- [ ] **M** `BaseAgent(role, cfg, gk, llm, reader, writer)`; `run()`
+- [x] **M** `BaseAgent(role, cfg, gk, llm, reader, writer)`; `run()`
   enters an infinite read-handle-write loop. Trace: PLAN §4.
-- [ ] **M** `handle(env)` is abstract; subclasses must implement.
-- [ ] **M** Built-in handling of `ping → pong` and `shutdown → clean
+- [x] **M** `handle(env)` is abstract; subclasses must implement.
+- [x] **M** Built-in handling of `ping → pong` and `shutdown → clean
   exit`. Subclasses never override these (anti-duplication rule 1).
-- [ ] **M** All outbound replies go through `self.send(env)` which
+- [x] **M** All outbound replies go through `self.send(env)` which
   stamps `ts`, `turn_id`, `role`.
-- [ ] **M** Uncaught exception in `handle()` → log to stderr + emit
+- [x] **M** Uncaught exception in `handle()` → log to stderr + emit
   `event{name="agent_error"}` envelope → exit code 2 (Watchdog will
   respawn).
 
 ### P6.2 `agents/debater_agent.py`
 
-- [ ] **M** Inherits `BaseAgent`. Adds `STANCE: ClassVar[str]` and a
+- [x] **M** Inherits `BaseAgent`. Adds `STANCE: ClassVar[str]` and a
   `compose_reply(prompt: PromptPayload) -> ReplyPayload` that:
   1. Calls `gk.select_context(role, turn_id)` for the message list,
   2. Optionally issues a `tool_call:search` envelope and awaits the
      `tool_result`,
   3. Calls `gk.execute(llm.chat, ...)` to generate the reply,
   4. Returns a `ReplyPayload` with token counts.
-- [ ] **M** Stance constant is injected into the system prompt via a
+- [x] **M** Stance constant is injected into the system prompt via a
   template in `config/prompts/debater.system.txt` — text only, no
   conditional logic.
-- [ ] **M** `handle()` dispatches by `MessageType` (init, prompt,
+- [x] **M** `handle()` dispatches by `MessageType` (init, prompt,
   ping handled by parent).
 
 ### P6.3 `agents/pro_agent.py` / `agents/con_agent.py`
 
-- [ ] **M** Each file ≤ 10 lines: import `DebaterAgent`, set
+- [x] **M** Each file ≤ 10 lines: import `DebaterAgent`, set
   `STANCE = "pro"` / `STANCE = "con"`, `if __name__ == "__main__":
   ProAgent.bootstrap()`.
-- [ ] **M** `DebaterAgent.bootstrap()` (classmethod): load config,
+- [x] **M** `DebaterAgent.bootstrap()` (classmethod): load config,
   build `Gatekeeper` / `LLMClient` / `SkillRouter`, wire
   `JsonPipeReader(sys.stdin.buffer)` /
   `JsonPipeWriter(sys.stdout.buffer)`, call `run()`.
 
 ### P6.4 Defensive Programming
 
-- [ ] **M** Debater enforces `len(reply.text) > 0` (never send empty
+- [x] **M** Debater enforces `len(reply.text) > 0` (never send empty
   reply); on empty LLM output, retry once then emit `agent_error`.
-- [ ] **M** Debater refuses to issue more than
+- [x] **M** Debater refuses to issue more than
   `cfg.max_tool_calls_per_turn` (add to config; default 2) tool calls
   per prompt — prevents tool-call loops.
-- [ ] **M** Debater logs (via stderr only — stdout is reserved for IPC)
+- [x] **M** Debater logs (via stderr only — stdout is reserved for IPC)
   any caught exception with traceback.
 
 ### P6.5 Tests
 
-- [ ] **M** `tests/unit/test_base_agent.py` — `ping → pong` automatic;
+- [x] **M** `tests/unit/test_base_agent.py` — `ping → pong` automatic;
   `shutdown` exits cleanly; uncaught exception in `handle` produces the
   expected `agent_error` envelope and exit code.
-- [ ] **M** `tests/integration/test_debater_stub_judge.py` — a fake
+- [x] **M** `tests/integration/test_debater_stub_judge.py` — a fake
   Judge sends `init` + 3 `prompt` envelopes; Pro and Con each return
   valid `ReplyPayload`s under a stub LLM (deterministic echo).
-- [ ] **M** Tool-call cap test: rigged LLM returns `tool_call` thrice;
+- [x] **M** Tool-call cap test: rigged LLM returns `tool_call` thrice;
   debater fires exactly 2 then composes a reply.
-- [ ] **S** Stress test: 50-envelope ping-pong storm; no envelopes
+- [x] **S** Stress test: 50-envelope ping-pong storm; no envelopes
   dropped, no leaked goroutines/threads.
 
 ### P6.6 Security Checkpoint
 
-- [ ] **M** Audit: child processes never call `secrets.get_key("SEARCH_API_KEY")`
+- [x] **M** Audit: child processes never call `secrets.get_key("SEARCH_API_KEY")`
   (search is Judge-proxied — NFR-12).
 
 ### P6 — Definition of Done
 
-- [ ] Pro & Con files are each ≤ 10 lines, differing only by `STANCE`.
-- [ ] Debater + stub Judge integration test completes 3 rounds.
-- [ ] Tool-call cap enforced.
-- [ ] No `print()` calls anywhere in `agents/`.
+- [x] Pro & Con files are each ≤ 10 lines, differing only by `STANCE`.
+- [x] Debater + stub Judge integration test completes 3 rounds.
+- [x] Tool-call cap enforced.
+- [x] No `print()` calls anywhere in `agents/`.
 
 ---
 
@@ -661,92 +661,92 @@ verdict.
 
 ### P7.1 `agents/judge_agent.py` — Round Driver
 
-- [ ] **M** `JudgeAgent(cfg, gk, llm, supervisor, watchdog, fsm, logger)`.
-- [ ] **M** `run_debate(motion) -> Verdict`:
+- [x] **M** `JudgeAgent(cfg, gk, llm, supervisor, watchdog, fsm, logger)`.
+- [x] **M** `run_debate(motion) -> Verdict`:
   1. `fsm.transition(INIT, start(motion))`.
   2. `supervisor.spawn("pro")`, `supervisor.spawn("con")`.
   3. Loop driving the FSM until `is_terminal(state)`.
   4. Persist final `VerdictPayload` + run summary.
-- [ ] **M** For every Pro/Con reply: invoke `score` skill via Router
+- [x] **M** For every Pro/Con reply: invoke `score` skill via Router
   (separate, cheaper LLM if `cfg.score_model` set) and feed a
   `ScorePayload` to `logger` and the FSM's `ctx`.
 
 ### P7.2 Multi-Stage Verdict Validation
 
-- [ ] **M** Stage 1 — **Schema validation** of LLM reply against
+- [x] **M** Stage 1 — **Schema validation** of LLM reply against
   `verdict.schema.json` (FR-8, §6.3).
-- [ ] **M** Stage 2 — **Semantic validation**: `winner ∈ {pro, con}`
+- [x] **M** Stage 2 — **Semantic validation**: `winner ∈ {pro, con}`
   (excluded by schema, double-checked), `reasons` length ≥ 3, no
   reason a verbatim copy of another (Jaccard < 0.9).
-- [ ] **M** Stage 3 — **Consistency check**: `scores.pro != scores.con`
+- [x] **M** Stage 3 — **Consistency check**: `scores.pro != scores.con`
   *or* the chosen winner has the higher score (no contradiction).
-- [ ] **M** On any stage failing: re-prompt the Judge **once** with the
+- [x] **M** On any stage failing: re-prompt the Judge **once** with the
   failure reason injected into the system prompt (FR-9). Trace via
   FSM state `VALIDATE_VERDICT → VERDICT (retry==0)`.
-- [ ] **M** On second failure: transition to `TIE_BREAK`.
+- [x] **M** On second failure: transition to `TIE_BREAK`.
 
 ### P7.3 Deterministic Tie-Breaker
 
-- [ ] **M** `tie_break(history) -> Role`:
+- [x] **M** `tie_break(history) -> Role`:
   1. Sum all `ScorePayload.score` per role across the debate.
   2. `argmax` wins.
   3. On numerical tie: the role that **spoke last** (`con`) wins.
      Documented in PLAN §6.4 — pure function, fully reproducible.
-- [ ] **M** Emit a `verdict` envelope with `reasons = ["Tie-breaker:
+- [x] **M** Emit a `verdict` envelope with `reasons = ["Tie-breaker:
   cumulative score = …", …]` so the transcript explains the decision.
 
 ### P7.4 Select/Write Context Window Management
 
-- [ ] **M** Judge calls `gk.select_context("judge", turn_id)` for
+- [x] **M** Judge calls `gk.select_context("judge", turn_id)` for
   scoring — receives only the latest opponent reply + rolling
   summary, **not** the full transcript. Trace: NFR-4.
-- [ ] **M** After every round, Judge calls
+- [x] **M** After every round, Judge calls
   `gk.write_summary("judge", turn_id, summary_text)`. The summary is
   generated by the `summarise` skill (Router) and capped at
   `cfg.summary_max_tokens`.
-- [ ] **M** Scoring prompts never include earlier rounds verbatim —
+- [x] **M** Scoring prompts never include earlier rounds verbatim —
   only the summary. Verified by a unit test that inspects the prompt
   payload sent to `gk.execute`.
 
 ### P7.5 Defensive Programming
 
-- [ ] **M** Verdict generation has its own token cap
+- [x] **M** Verdict generation has its own token cap
   `cfg.max_tokens_for_verdict` (add to config) so a runaway Judge
   cannot blow the debate budget on the final call.
-- [ ] **M** Tie-breaker never raises (empty score history → deterministic
+- [x] **M** Tie-breaker never raises (empty score history → deterministic
   fallback to `con`, with a logged `event{name="tie_break_empty"}`).
-- [ ] **M** Judge handles `child_unrecoverable` by entering `ABORT`
+- [x] **M** Judge handles `child_unrecoverable` by entering `ABORT`
   state, **still** writing a partial transcript and a
   `verdict{outcome="aborted"}` event.
 
 ### P7.6 Tests
 
-- [ ] **M** `tests/unit/test_verdict_validation.py` — schema fail →
+- [x] **M** `tests/unit/test_verdict_validation.py` — schema fail →
   one retry; semantic fail (duplicate reasons) → retry; consistency
   fail (winner=pro, scores show con higher) → retry; success on retry
   → DONE.
-- [ ] **M** `tests/unit/test_tie_break.py` —
+- [x] **M** `tests/unit/test_tie_break.py` —
   - asymmetric scores → higher wins,
   - exact tie → `con` wins,
   - empty history → `con` wins with event logged.
-- [ ] **M** `tests/unit/test_select_write.py` — `select_context`
+- [x] **M** `tests/unit/test_select_write.py` — `select_context`
   returns at most 3 message blocks; full transcript never appears in
   the scoring prompt.
-- [ ] **M** `tests/integration/test_debate_full.py` — full 10-ping
+- [x] **M** `tests/integration/test_debate_full.py` — full 10-ping
   debate against a deterministic stub LLM; verdict is non-tie and
   carries ≥ 3 reasons. Trace: SC-1, SC-2.
 
 ### P7.7 Security Checkpoint
 
-- [ ] **M** Audit: `runs/<ts>/run.jsonl` from the full-debate test
+- [x] **M** Audit: `runs/<ts>/run.jsonl` from the full-debate test
   contains zero matches for the live API key (regex scan).
 
 ### P7 — Definition of Done
 
-- [ ] Verdict validator handles all three failure modes plus success.
-- [ ] Tie-breaker is a pure, deterministic function with full coverage.
-- [ ] Full-debate integration test produces a valid non-tie verdict.
-- [ ] Scoring prompt size grows ≤ O(1) with round number (Select/Write
+- [x] Verdict validator handles all three failure modes plus success.
+- [x] Tie-breaker is a pure, deterministic function with full coverage.
+- [x] Full-debate integration test produces a valid non-tie verdict.
+- [x] Scoring prompt size grows ≤ O(1) with round number (Select/Write
   works).
 
 ---
@@ -759,59 +759,59 @@ updates per turn.
 
 ### P8.1 `ui/menu.py`
 
-- [ ] **M** Render a numbered menu (via `rich`): **(1)** start debate
+- [x] **M** Render a numbered menu (via `rich`): **(1)** start debate
   with default config, **(2)** pick a motion from `motions.json`,
   **(3)** enter a custom motion, **(4)** edit runtime tunables
   (`rounds`, `model`, `budget_usd`, `max_tokens_per_turn`),
   **(5)** replay a saved run, **(6)** quit. Trace: FR-1, FR-11, FR-12.
-- [ ] **M** Edits in option (4) write to an **in-memory** `Config`
+- [x] **M** Edits in option (4) write to an **in-memory** `Config`
   copy; `config/debate.json` on disk is untouched unless the user
   explicitly chooses "save".
-- [ ] **M** Validate user input at every prompt; reject silently on
+- [x] **M** Validate user input at every prompt; reject silently on
   obviously bad values (negative rounds, etc.) with a clear message.
 
 ### P8.2 Live Status Panel
 
-- [ ] **M** During a debate, render a `rich.Live` panel refreshed after
+- [x] **M** During a debate, render a `rich.Live` panel refreshed after
   every turn with: current speaker, round X / N, cumulative `tokens_in
   / tokens_out`, `usd_spent / max_usd_per_debate`, elapsed wall-clock.
   Trace: NFR-16.
-- [ ] **M** Panel never prints raw API responses (would clutter and risk
+- [x] **M** Panel never prints raw API responses (would clutter and risk
   redaction bypass) — only the structured summary.
-- [ ] **S** Side-by-side panes for Pro / Con last replies (truncated to
+- [x] **S** Side-by-side panes for Pro / Con last replies (truncated to
   N chars).
 
 ### P8.3 `main.py`
 
-- [ ] **M** Argparse: `--config`, `--motion`, `--non-interactive` for
+- [x] **M** Argparse: `--config`, `--motion`, `--non-interactive` for
   scripted runs (CI).
-- [ ] **M** Install signal handlers for `SIGINT` / `SIGTERM` that
+- [x] **M** Install signal handlers for `SIGINT` / `SIGTERM` that
   cleanly terminate children (delegates to Supervisor).
-- [ ] **M** Exit codes: 0 = `DONE`, 2 = `ABORT(budget_exhausted)`,
+- [x] **M** Exit codes: 0 = `DONE`, 2 = `ABORT(budget_exhausted)`,
   3 = `ABORT(child_unrecoverable)`, 1 = unexpected.
 
 ### P8.4 Defensive Programming
 
-- [ ] **M** Menu never crashes on `Ctrl-C` — traps `KeyboardInterrupt`
+- [x] **M** Menu never crashes on `Ctrl-C` — traps `KeyboardInterrupt`
   at every prompt and returns to the main menu.
-- [ ] **M** Replay mode (option 5) is **read-only**: opens
+- [x] **M** Replay mode (option 5) is **read-only**: opens
   `runs/<ts>/run.jsonl`, refuses to spawn children, refuses to make
   any HTTP call. Trace: FR-11.
 
 ### P8.5 Tests
 
-- [ ] **M** `tests/unit/test_menu.py` — option dispatch table covered;
+- [x] **M** `tests/unit/test_menu.py` — option dispatch table covered;
   validation rejects bad inputs; `KeyboardInterrupt` returns cleanly.
-- [ ] **S** `tests/integration/test_main_smoke.py` —
+- [x] **S** `tests/integration/test_main_smoke.py` —
   `--non-interactive --motion <fixed>` runs a 2-round debate against
   the stub LLM and exits 0.
 
 ### P8 — Definition of Done
 
-- [ ] Menu covers all 6 options; (4) tunables persist for the next
+- [x] Menu covers all 6 options; (4) tunables persist for the next
   run inside the session.
-- [ ] Live panel renders without flicker under at least 30 turn updates.
-- [ ] Replay mode never opens a network socket (verified via a
+- [x] Live panel renders without flicker under at least 30 turn updates.
+- [x] Replay mode never opens a network socket (verified via a
   `httpx.MockTransport` that asserts zero calls).
 
 ---

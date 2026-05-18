@@ -17,7 +17,7 @@ def phase_for_round(round_num: int) -> DebatePhase:
 def score_reply(
     agent: JudgeAgent, role: str, text: str, round_num: int, turn_id: int
 ) -> ScorePayload:
-0    ctx_blocks = agent.gk.select_context("judge", turn_id)
+    ctx_blocks = agent.gk.select_context("judge", turn_id)
     parts = [f"Motion: {agent._motion}", f"Scoring {role} argument:"]
     for block in ctx_blocks:
         parts.append(f"[{block.role}] {block.content[:600]}")

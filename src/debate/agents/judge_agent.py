@@ -1,7 +1,6 @@
 """Judge orchestrator — FSM driver, scoring, verdict pipeline (P7)."""
-
 from __future__ import annotations
-
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -11,8 +10,7 @@ from debate.agents.judge_agent_ops import (
     closing_round,
     emit_abort,
     log_verdict,
-    render_verdict,
-)
+    render_verdict,)
 from debate.agents.judge_build import build_judge_agent
 from debate.agents.judge_child import send_init
 from debate.agents.judge_rounds import phase_for_round, score_reply, summarise_round
@@ -29,7 +27,6 @@ from debate.shared.logger import Logger
 from debate.shared.router import SkillRouter
 from debate.shared.skills import LLMClientProto
 
-
 @dataclass
 class JudgeAgent:
     cfg: Config
@@ -39,6 +36,8 @@ class JudgeAgent:
     router: SkillRouter
     logger: Logger
     watchdog: Watchdog | None = None
+    on_turn: Callable[[str], None] | None = None
+    _live: Any = None
     _motion: str = ""
     _turn_id: int = 0
     _scores: list[ScorePayload] = field(default_factory=list)
@@ -56,8 +55,19 @@ class JudgeAgent:
         llm: LLMClientProto | None = None,
         logger: Logger | None = None,
         stderr_dir: Any = None,
+        child_env: dict[str, str] | None = None,
     ) -> JudgeAgent:
-        return build_judge_agent(cls, cfg, llm=llm, logger=logger, stderr_dir=stderr_dir)
+        return build_judge_agent(
+            cls, cfg, llm=llm, logger=logger, stderr_dir=stderr_dir, child_env=child_env
+        )
+
+    def _pulse(self, speaker: str) -> None:
+        if self.on_turn:
+            self.on_turn(speaker)
+        if self._live is not None:
+            from debate.ui.status import render_panel, status_from_agent
+
+            self._live.update(render_panel(status_from_agent(self, speaker=speaker)))
 
     def run_debate(self, motion: str) -> VerdictPayload:
         self._motion = motion
@@ -98,6 +108,7 @@ class JudgeAgent:
                 self._last_pro = child_turn(self, "pro", phase_for_round(self._ctx.round), timeout)
                 self._state = transition(self._state, Event.PRO_REPLY, self._ctx)
                 score_reply(self, "pro", self._last_pro, self._ctx.round, self._turn_id)
+                self._pulse("pro")
                 self._state = transition(self._state, Event.SCORED, self._ctx)
             elif self._state == State.CON_TURN:
                 self._last_con = child_turn(
@@ -110,6 +121,7 @@ class JudgeAgent:
                 self._state = transition(self._state, Event.CON_REPLY, self._ctx)
                 score_reply(self, "con", self._last_con, self._ctx.round, self._turn_id)
                 summarise_round(self, self._last_pro, self._last_con, self._turn_id)
+                self._pulse("con")
                 self._state = transition(self._state, Event.SCORED, self._ctx)
             elif self._state == State.CLOSING:
                 closing_round(self, timeout)

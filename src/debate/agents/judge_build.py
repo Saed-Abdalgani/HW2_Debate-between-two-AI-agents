@@ -28,6 +28,7 @@ def build_judge_agent(
     llm: LLMClientProto | None = None,
     logger: Logger | None = None,
     stderr_dir: Any = None,
+    child_env: dict[str, str] | None = None,
 ) -> JudgeAgent:
     run_logger = logger or Logger.open_run()
     run_dir = run_logger.run_dir
@@ -47,7 +48,7 @@ def build_judge_agent(
         ),
     )
     register_search_skill(router, gk, cfg, http)
-    sup = Supervisor(cfg, stderr_dir=stderr_dir or run_dir)
+    sup = Supervisor(cfg, stderr_dir=stderr_dir or run_dir, child_env=child_env)
     agent = cls(cfg, gk, judge_llm, sup, router, run_logger)
     agent._ctx = Ctx(round_limit=cfg.rounds)
     return agent
