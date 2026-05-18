@@ -48,7 +48,7 @@ quote-style = "double"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src", "tests/unit"]
+pythonpath = ["src", "tests/unit", "tests/integration"]
 addopts = "-ra -q --strict-markers"
 markers = [
     "unit: unit tests",

@@ -36,6 +36,7 @@ _VALID = {
     "http_timeout_sec": 30,
     "search_snippet_max_chars": 500,
     "max_tool_calls_per_turn": 2,
+    "max_tokens_for_verdict": 1200,
     "search": {"provider": "tavily", "max_results": 5, "cache": True},
 }
 
