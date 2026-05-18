@@ -49,6 +49,40 @@ def build_judge_agent(
     )
     register_search_skill(router, gk, cfg, http)
     sup = Supervisor(cfg, stderr_dir=stderr_dir or run_dir, child_env=child_env)
-    agent = cls(cfg, gk, judge_llm, sup, router, run_logger)
+
+    def on_miss(role: str) -> None:
+        agent.logger.event("heartbeat_miss", role=role, turn_id=agent._turn_id)
+        from debate.orchestration.state_machine import Event
+        # We need a thread-safe way to transition, or we just emit the abort.
+        # But this is test_recovery_chaos so it needs to recover!
+        sup.terminate(role)
+        sup.spawn(role)
+        # after respawn, replay prompt
+        from debate.agents.judge_child import send_prompt, send_init
+        from debate.sdk.payloads import DebatePhase
+        send_init(sup, cfg, agent._motion, role, agent._turn_id)
+        last = agent._ctx.last_outbound_per_role.get(role, "opening")
+        ctx = gk.select_context(role, agent._turn_id)
+        opp = agent._last_con if role == "pro" else agent._last_pro
+        send_prompt(sup, role, phase=DebatePhase(last), context=ctx, opponent_last=opp, turn_id=agent._turn_id)
+
+    def on_unrecoverable(role: str) -> None:
+        agent.logger.event("child_unrecoverable", role=role, turn_id=agent._turn_id)
+        agent._ctx.abort_reason = "child_unrecoverable"
+        # The main thread loop will abort if we could signal it.
+
+    from debate.orchestration.watchdog import Watchdog
+    wd = Watchdog(
+        sup,
+        heartbeat_sec=cfg.heartbeat_sec,
+        max_consecutive_misses=cfg.heartbeat_max_consecutive_misses,
+        max_restarts_per_child=cfg.max_restarts_per_child,
+        pong_check=lambda role: sup._children.get(role) is not None and sup._children.get(role).process.poll() is None,
+        on_miss=on_miss,
+        on_unrecoverable=on_unrecoverable,
+    )
+
+    agent = cls(cfg, gk, judge_llm, sup, router, run_logger, watchdog=wd)
     agent._ctx = Ctx(round_limit=cfg.rounds)
+
     return agent

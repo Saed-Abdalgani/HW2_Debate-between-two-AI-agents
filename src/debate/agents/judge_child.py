@@ -81,6 +81,16 @@ def recv_reply(
                 judge_envelope(MessageType.TOOL_RESULT, result, turn_id=env.turn_id),
             )
             continue
+        if env.type == MessageType.PONG:
+            # We received a pong on the main thread. 
+            # In a real async/select system we'd mark it, but here we can just skip it.
+            continue
+        if env.type == MessageType.EVENT:
+            from debate.shared.budget import BudgetExceeded
+            if hasattr(env.payload, "name") and getattr(env.payload, "name") == "agent_error":
+                data = getattr(env.payload, "data", {})
+                if data.get("error") == "BudgetExceeded":
+                    raise BudgetExceeded(data.get("detail", "child budget exhausted"), {})
         return env
 
 

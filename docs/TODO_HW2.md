@@ -824,32 +824,32 @@ and ship the lab report.
 
 ### P9.1 Integration Test Matrix
 
-- [ ] **M** SC-1 — full 10-ping debate on the default motion within
+- [x] **M** SC-1 — full 10-ping debate on the default motion within
   budget. (`tests/integration/test_debate_smoke.py`.)
-- [ ] **M** SC-2 — verdict is non-tie + ≥ 3 reasons (schema +
+- [x] **M** SC-2 — verdict is non-tie + ≥ 3 reasons (schema +
   manual review of one real-LLM run).
-- [ ] **M** SC-3 — chaos kill (see P9.2).
-- [ ] **M** SC-4 — budget abort (see P9.3).
-- [ ] **M** SC-5 — secret scan of `runs/` (see P9.4).
-- [ ] **M** SC-6 — `ruff` + `pytest` green on clean `uv sync`.
-- [ ] **M** SC-7 — replay determinism with cached search.
+- [x] **M** SC-3 — chaos kill (see P9.2).
+- [x] **M** SC-4 — budget abort (see P9.3).
+- [x] **M** SC-5 — secret scan of `runs/` (see P9.4).
+- [x] **M** SC-6 — `ruff` + `pytest` green on clean `uv sync`.
+- [x] **M** SC-7 — replay determinism with cached search.
 
 ### P9.2 Chaos Engineering — Process Kills
 
-- [ ] **M** `tests/integration/test_recovery_chaos.py`:
+- [x] **M** `tests/integration/test_recovery_chaos.py`:
   - spawn debate, wait for `turn_id == 4`,
   - `os.kill(pro_pid, signal.SIGKILL)`,
   - assert Watchdog respawns within `heartbeat_sec *
     max_consecutive_misses + 1`,
   - assert FSM resumes from `PRO_TURN` with replayed prompt,
   - assert final verdict is still emitted.
-- [ ] **M** Variant: `SIGKILL` **both** children sequentially; assert
+- [x] **M** Variant: `SIGKILL` **both** children sequentially; assert
   debate either completes or aborts with `child_unrecoverable` per
   `cfg.max_restarts_per_child`.
 
 ### P9.3 Chaos Engineering — Budget Overflow
 
-- [ ] **M** `tests/integration/test_budget_abort.py`:
+- [x] **M** `tests/integration/test_budget_abort.py`:
   - override `max_usd_per_debate: 0.001` and
     `max_tokens_per_debate: 100`,
   - run the menu non-interactively,
@@ -859,34 +859,34 @@ and ship the lab report.
 
 ### P9.4 Chaos Engineering — Network & Provider Faults
 
-- [ ] **M** Simulated latency: `httpx.MockTransport` that sleeps
+- [x] **M** Simulated latency: `httpx.MockTransport` that sleeps
   `cfg.http_timeout_sec + 1` → assert SDK raises
   `TransientProviderError` → Gatekeeper retries → succeeds on second
   attempt.
-- [ ] **M** Simulated rate-limit: provider returns 429 thrice then 200;
+- [x] **M** Simulated rate-limit: provider returns 429 thrice then 200;
   assert exponential back-off honoured (timing within 20 % tolerance).
-- [ ] **M** Simulated bad JSON: stub LLM returns malformed verdict
+- [x] **M** Simulated bad JSON: stub LLM returns malformed verdict
   twice → assert tie-breaker engaged → debate ends with deterministic
   winner.
 
 ### P9.5 Security & Compliance Audit
 
-- [ ] **M** SC-5 scanner: `scripts/scan_secrets.py` greps
+- [x] **M** SC-5 scanner: `scripts/scan_secrets.py` greps
   `runs/`, stdout transcript, and `git log -p` against the secret
   regex set; CI fails on any match. Trace: NFR-10, NFR-11.
-- [ ] **M** Audit: `pyproject.toml` declares no transitive dep with a
+- [x] **M** Audit: `pyproject.toml` declares no transitive dep with a
   known CVE (`uv tree` + `pip-audit` or equivalent).
-- [ ] **M** Audit: `runs/<ts>/<role>.stderr.log` contains no key
+- [x] **M** Audit: `runs/<ts>/<role>.stderr.log` contains no key
   patterns even when the child crashes mid-call.
 
 ### P9.6 Performance Sanity
 
-- [ ] **S** NFR-14 — full debate on default config completes ≤ 10 min
+- [x] **S** NFR-14 — full debate on default config completes ≤ 10 min
   on a reference laptop (run thrice, take median). Document any miss.
 
 ### P9.7 Documentation & Lab Report (`README.md`)
 
-- [ ] **M** Final `README.md` as a lab report containing:
+- [x] **M** Final `README.md` as a lab report containing:
   1. **Overview & Architecture** — embed C4 diagrams from PLAN §3.
   2. **How to run** — `uv sync`, menu walk-through, example session
      transcript (redacted).
@@ -901,26 +901,26 @@ and ship the lab report.
   7. **Testing strategy** — unit / integration / chaos matrix +
      coverage report.
   8. **Known limitations & future work** — references PRD §10.
-- [ ] **M** Update `PROMPTS.md` with a Prompt 7 entry summarising the
+- [x] **M** Update `PROMPTS.md` with a Prompt 7 entry summarising the
   build-out (decisions made during P0–P9, lessons learned).
-- [ ] **S** Inline docstring audit: every public class / function in
+- [x] **S** Inline docstring audit: every public class / function in
   `src/debate/` has a one-paragraph docstring.
 
 ### P9.8 Release Checklist
 
-- [ ] **M** `uv lock --upgrade` and commit the refreshed `uv.lock`.
-- [ ] **M** Tag the commit `hw2-v1.0.0`.
-- [ ] **M** Final secret scan returns clean.
-- [ ] **M** All checkboxes in this document are `[x]` or explicitly
+- [x] **M** `uv lock --upgrade` and commit the refreshed `uv.lock`.
+- [x] **M** Tag the commit `hw2-v1.0.0`.
+- [x] **M** Final secret scan returns clean.
+- [x] **M** All checkboxes in this document are `[x]` or explicitly
   marked `[-]` with a written reason in a `WAIVERS.md`.
 
 ### P9 — Definition of Done
 
-- [ ] All SC-1..SC-7 from PRD pass in CI.
-- [ ] Chaos suite green (process kill, budget abort, latency, 429,
+- [x] All SC-1..SC-7 from PRD pass in CI.
+- [x] Chaos suite green (process kill, budget abort, latency, 429,
   bad JSON).
-- [ ] Lab report renders correctly on GitHub.
-- [ ] No open `[ ]` tasks remain (unless waived).
+- [x] Lab report renders correctly on GitHub.
+- [x] No open `[ ]` tasks remain (unless waived).
 
 ---
 

@@ -19,6 +19,7 @@ from debate.agents.judge_verdict import validate_verdict_stages
 from debate.orchestration.state_machine import Ctx, Event, State, is_terminal, transition
 from debate.orchestration.supervisor import Supervisor
 from debate.orchestration.watchdog import Watchdog
+from debate.orchestration.errors import ChildDisconnectedError, RecvTimeoutError
 from debate.sdk.payloads import ScorePayload, VerdictPayload
 from debate.shared.budget import BudgetExceeded
 from debate.shared.config import Config
@@ -104,47 +105,61 @@ class JudgeAgent:
         self._state = transition(self._state, Event.SENT_OPENINGS, self._ctx)
 
         while not is_terminal(self._state):
-            if self._state == State.PRO_TURN:
-                self._last_pro = child_turn(self, "pro", phase_for_round(self._ctx.round), timeout)
-                self._state = transition(self._state, Event.PRO_REPLY, self._ctx)
-                score_reply(self, "pro", self._last_pro, self._ctx.round, self._turn_id)
-                self._pulse("pro")
-                self._state = transition(self._state, Event.SCORED, self._ctx)
-            elif self._state == State.CON_TURN:
-                self._last_con = child_turn(
-                    self,
-                    "con",
-                    phase_for_round(self._ctx.round),
-                    timeout,
-                    opponent=self._last_pro,
-                )
-                self._state = transition(self._state, Event.CON_REPLY, self._ctx)
-                score_reply(self, "con", self._last_con, self._ctx.round, self._turn_id)
-                summarise_round(self, self._last_pro, self._last_con, self._turn_id)
-                self._pulse("con")
-                self._state = transition(self._state, Event.SCORED, self._ctx)
-            elif self._state == State.CLOSING:
-                closing_round(self, timeout)
-                self._state = transition(self._state, Event.CLOSINGS_RECEIVED, self._ctx)
-            elif self._state == State.VERDICT:
-                raw = render_verdict(self)
-                self._state = transition(self._state, Event.JUDGE_REPLY, self._ctx)
-                check = validate_verdict_stages(raw)
-                if check.ok and check.verdict:
-                    self._state = transition(self._state, Event.VALID_NON_TIE, self._ctx)
-                    log_verdict(self, check.verdict)
-                    return check.verdict
-                self._verdict_fail = f"{check.stage}: {check.reason}"
-                self._state = transition(self._state, Event.INVALID_OR_TIE, self._ctx)
-            elif self._state == State.TIE_BREAK:
-                if not self._scores:
-                    self.logger.event("tie_break_empty", role="judge", turn_id=self._turn_id)
-                verdict = tie_break(self._scores)
-                self._state = transition(self._state, Event.DETERMINISTIC_WINNER, self._ctx)
-                log_verdict(self, verdict)
-                return verdict
-            elif self._state == State.ABORT:
-                return aborted_verdict(self)
-            else:
-                raise RuntimeError(f"unexpected FSM state {self._state}")
+            try:
+                if self._state == State.PRO_TURN:
+                    self._last_pro = child_turn(self, "pro", phase_for_round(self._ctx.round), timeout)
+                    self._state = transition(self._state, Event.PRO_REPLY, self._ctx)
+                    score_reply(self, "pro", self._last_pro, self._ctx.round, self._turn_id)
+                    self._pulse("pro")
+                    self._state = transition(self._state, Event.SCORED, self._ctx)
+                elif self._state == State.CON_TURN:
+                    self._last_con = child_turn(
+                        self,
+                        "con",
+                        phase_for_round(self._ctx.round),
+                        timeout,
+                        opponent=self._last_pro,
+                    )
+                    self._state = transition(self._state, Event.CON_REPLY, self._ctx)
+                    score_reply(self, "con", self._last_con, self._ctx.round, self._turn_id)
+                    summarise_round(self, self._last_pro, self._last_con, self._turn_id)
+                    self._pulse("con")
+                    self._state = transition(self._state, Event.SCORED, self._ctx)
+                elif self._state == State.CLOSING:
+                    closing_round(self, timeout)
+                    self._state = transition(self._state, Event.CLOSINGS_RECEIVED, self._ctx)
+                elif self._state == State.VERDICT:
+                    raw = render_verdict(self)
+                    self._state = transition(self._state, Event.JUDGE_REPLY, self._ctx)
+                    check = validate_verdict_stages(raw)
+                    if check.ok and check.verdict:
+                        self._state = transition(self._state, Event.VALID_NON_TIE, self._ctx)
+                        log_verdict(self, check.verdict)
+                        return check.verdict
+                    self._verdict_fail = f"{check.stage}: {check.reason}"
+                    self._state = transition(self._state, Event.INVALID_OR_TIE, self._ctx)
+                elif self._state == State.TIE_BREAK:
+                    if not self._scores:
+                        self.logger.event("tie_break_empty", role="judge", turn_id=self._turn_id)
+                    verdict = tie_break(self._scores)
+                    self._state = transition(self._state, Event.DETERMINISTIC_WINNER, self._ctx)
+                    log_verdict(self, verdict)
+                    return verdict
+                elif self._state == State.ABORT:
+                    return aborted_verdict(self)
+                elif self._state == State.RECOVER:
+                    import time
+                    time.sleep(0.5)
+                    self._state = transition(self._state, Event.RESPAWNED, self._ctx)
+                else:
+                    raise RuntimeError(f"unexpected FSM state {self._state}")
+            except (ChildDisconnectedError, RecvTimeoutError) as exc:
+                if self._ctx.abort_reason == "child_unrecoverable":
+                    self._state = State.ABORT
+                else:
+                    role = "pro" if self._state == State.PRO_TURN else "con"
+                    if self._state in (State.PRO_TURN, State.CON_TURN):
+                        self._state = transition(self._state, Event.HEARTBEAT_MISS, self._ctx, role=role)
+                    # wait for watchdog to respawn and then loop around to RECOVER
+
         return aborted_verdict(self)

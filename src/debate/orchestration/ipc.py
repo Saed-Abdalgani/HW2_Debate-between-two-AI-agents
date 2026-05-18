@@ -76,7 +76,7 @@ class JsonPipeWriter:
         try:
             self._stream.write(line)
             self._stream.flush()
-        except (BrokenPipeError, ValueError) as exc:
+        except (BrokenPipeError, ValueError, OSError) as exc:
             raise ChildDisconnectedError(self._role) from exc
 
     def close(self) -> None:
