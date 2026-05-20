@@ -1,35 +1,33 @@
-"""Judge orchestrator — FSM driver, scoring, verdict pipeline (P7)."""
+"""Judge orchestrator — FSM driver, scoring, verdict pipeline (P7).
+Includes motion validation, state inspection, pre-flight checks,
+structured lifecycle logging, and safety sanitisation.
+"""
 from __future__ import annotations
+import re
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
-
-from debate.agents.judge_agent_ops import (
-    aborted_verdict,
-    child_turn,
-    closing_round,
-    emit_abort,
-    log_verdict,
-    render_verdict,)
 from debate.agents.judge_build import build_judge_agent
-from debate.agents.judge_child import send_init
-from debate.agents.judge_rounds import phase_for_round, score_reply, summarise_round
-from debate.agents.judge_tie_break import tie_break
-from debate.agents.judge_verdict import validate_verdict_stages
-from debate.orchestration.state_machine import Ctx, Event, State, is_terminal, transition
+from debate.orchestration.state_machine import Ctx, State
 from debate.orchestration.supervisor import Supervisor
 from debate.orchestration.watchdog import Watchdog
-from debate.orchestration.errors import ChildDisconnectedError, RecvTimeoutError
 from debate.sdk.payloads import ScorePayload, VerdictPayload
-from debate.shared.budget import BudgetExceeded
 from debate.shared.config import Config
 from debate.shared.gatekeeper import Gatekeeper
 from debate.shared.logger import Logger
 from debate.shared.router import SkillRouter
 from debate.shared.skills import LLMClientProto
 
+# Validation limits for the motion string.
+_MAX_MOTION_LENGTH = 2000
+_CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
+
+
 @dataclass
 class JudgeAgent:
+    """Orchestrates a full Pro-vs-Con debate and produces a verdict."""
+
     cfg: Config
     gk: Gatekeeper
     llm: LLMClientProto
@@ -59,7 +57,12 @@ class JudgeAgent:
         child_env: dict[str, str] | None = None,
     ) -> JudgeAgent:
         return build_judge_agent(
-            cls, cfg, llm=llm, logger=logger, stderr_dir=stderr_dir, child_env=child_env
+            cls,
+            cfg,
+            llm=llm,
+            logger=logger,
+            stderr_dir=stderr_dir,
+            child_env=child_env,
         )
 
     def _pulse(self, speaker: str) -> None:
@@ -71,95 +74,77 @@ class JudgeAgent:
             self._live.update(render_panel(status_from_agent(self, speaker=speaker)))
 
     def run_debate(self, motion: str) -> VerdictPayload:
-        self._motion = motion
-        self._scores.clear()
-        self._state = State.INIT
-        self._ctx = Ctx(round_limit=self.cfg.rounds)
-        if self.watchdog:
-            self.watchdog.start()
-        try:
-            return self._drive(motion)
-        except BudgetExceeded as exc:
-            emit_abort(self, "budget_exhausted", detail=str(exc))
-            self._state = State.ABORT
-            return aborted_verdict(self)
-        finally:
-            if self.watchdog:
-                self.watchdog.stop()
-            self.supervisor.shutdown_all()
-            self.logger.close()
+        """Validate motion, then delegate to the FSM runner."""
+        validated = _validate_motion(motion)
+        self._log_lifecycle("debate_start", validated[:80])
+        from debate.agents.judge_agent_runner import run_debate_impl
 
-    def _drive(self, motion: str) -> VerdictPayload:
-        timeout = self.cfg.recv_default_timeout_sec
-        self._state = transition(self._state, Event.START, self._ctx)
-        try:
-            self.supervisor.spawn("pro")
-            self.supervisor.spawn("con")
-        except Exception:
-            self._state = transition(self._state, Event.SPAWN_FAILED, self._ctx)
-            return aborted_verdict(self)
-        self._turn_id += 1
-        send_init(self.supervisor, self.cfg, motion, "pro", self._turn_id)
-        send_init(self.supervisor, self.cfg, motion, "con", self._turn_id)
-        self._state = transition(self._state, Event.CHILDREN_READY, self._ctx)
-        self._state = transition(self._state, Event.SENT_OPENINGS, self._ctx)
+        return run_debate_impl(self, validated)
 
-        while not is_terminal(self._state):
-            try:
-                if self._state == State.PRO_TURN:
-                    self._last_pro = child_turn(self, "pro", phase_for_round(self._ctx.round), timeout)
-                    self._state = transition(self._state, Event.PRO_REPLY, self._ctx)
-                    score_reply(self, "pro", self._last_pro, self._ctx.round, self._turn_id)
-                    self._pulse("pro")
-                    self._state = transition(self._state, Event.SCORED, self._ctx)
-                elif self._state == State.CON_TURN:
-                    self._last_con = child_turn(
-                        self,
-                        "con",
-                        phase_for_round(self._ctx.round),
-                        timeout,
-                        opponent=self._last_pro,
-                    )
-                    self._state = transition(self._state, Event.CON_REPLY, self._ctx)
-                    score_reply(self, "con", self._last_con, self._ctx.round, self._turn_id)
-                    summarise_round(self, self._last_pro, self._last_con, self._turn_id)
-                    self._pulse("con")
-                    self._state = transition(self._state, Event.SCORED, self._ctx)
-                elif self._state == State.CLOSING:
-                    closing_round(self, timeout)
-                    self._state = transition(self._state, Event.CLOSINGS_RECEIVED, self._ctx)
-                elif self._state == State.VERDICT:
-                    raw = render_verdict(self)
-                    self._state = transition(self._state, Event.JUDGE_REPLY, self._ctx)
-                    check = validate_verdict_stages(raw)
-                    if check.ok and check.verdict:
-                        self._state = transition(self._state, Event.VALID_NON_TIE, self._ctx)
-                        log_verdict(self, check.verdict)
-                        return check.verdict
-                    self._verdict_fail = f"{check.stage}: {check.reason}"
-                    self._state = transition(self._state, Event.INVALID_OR_TIE, self._ctx)
-                elif self._state == State.TIE_BREAK:
-                    if not self._scores:
-                        self.logger.event("tie_break_empty", role="judge", turn_id=self._turn_id)
-                    verdict = tie_break(self._scores)
-                    self._state = transition(self._state, Event.DETERMINISTIC_WINNER, self._ctx)
-                    log_verdict(self, verdict)
-                    return verdict
-                elif self._state == State.ABORT:
-                    return aborted_verdict(self)
-                elif self._state == State.RECOVER:
-                    import time
-                    time.sleep(0.5)
-                    self._state = transition(self._state, Event.RESPAWNED, self._ctx)
-                else:
-                    raise RuntimeError(f"unexpected FSM state {self._state}")
-            except (ChildDisconnectedError, RecvTimeoutError) as exc:
-                if self._ctx.abort_reason == "child_unrecoverable":
-                    self._state = State.ABORT
-                else:
-                    role = "pro" if self._state == State.PRO_TURN else "con"
-                    if self._state in (State.PRO_TURN, State.CON_TURN):
-                        self._state = transition(self._state, Event.HEARTBEAT_MISS, self._ctx, role=role)
-                    # wait for watchdog to respawn and then loop around to RECOVER
+    # --- Inspection helpers ----------------------------------------
+    def is_running(self) -> bool:
+        """Return ``True`` if the FSM is in a non-terminal state."""
+        from debate.orchestration.state_machine import is_terminal
 
-        return aborted_verdict(self)
+        return not is_terminal(self._state)
+
+    def current_round(self) -> int:
+        """Return the current debate round number."""
+        return self._ctx.round
+
+    def scores_summary(self) -> dict[str, float]:
+        """Aggregate scores per role across all rounds."""
+        totals: dict[str, float] = {"pro": 0.0, "con": 0.0}
+        for s in self._scores:
+            totals[s.for_role] += s.score
+        return totals
+
+    def score_trend(self) -> dict[str, list[float]]:
+        """Return per-role score lists in order for trend analysis."""
+        trend: dict[str, list[float]] = {"pro": [], "con": []}
+        for s in self._scores:
+            trend[s.for_role].append(s.score)
+        return trend
+
+    def debate_stats(self) -> dict[str, object]:
+        """Return a summary of the current debate state."""
+        return {
+            "state": self._state.value,
+            "round": self._ctx.round,
+            "turn_id": self._turn_id,
+            "scores_count": len(self._scores),
+            "scores_summary": self.scores_summary(),
+            "motion_len": len(self._motion),
+        }
+
+    def preflight_check(self) -> list[str]:
+        """Verify components are wired before starting a debate."""
+        issues: list[str] = []
+        if self.llm is None:
+            issues.append("LLM client is not set")
+        if self.supervisor is None:
+            issues.append("Supervisor is not set")
+        if self.router is None:
+            issues.append("SkillRouter is not set")
+        if self.logger is None:
+            issues.append("Logger is not set")
+        return issues
+
+    def _log_lifecycle(self, event: str, detail: str = "") -> None:
+        msg = f"[JUDGE] {event}"
+        if detail:
+            msg += f": {detail}"
+        sys.stderr.write(msg + "\n")
+
+    def __repr__(self) -> str:
+        return (
+            f"<JudgeAgent state={self._state.value} round={self._ctx.round} turns={self._turn_id}>"
+        )
+def _validate_motion(motion: str) -> str:
+    """Sanitise and validate the motion string."""
+    cleaned = _CONTROL_CHARS.sub("", motion).strip()
+    if not cleaned:
+        raise ValueError("motion must not be empty")
+    if len(cleaned) > _MAX_MOTION_LENGTH:
+        raise ValueError(f"motion exceeds {_MAX_MOTION_LENGTH} chars (got {len(cleaned)})")
+    return cleaned

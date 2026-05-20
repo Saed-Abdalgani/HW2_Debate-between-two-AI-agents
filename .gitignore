@@ -11,3 +11,16 @@ dist/
 build/
 .coverage
 htmlcov/
+
+# Logs and Debug
+*.log
+_dbg_stderr*/
+
+# OS and IDE
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Config/Secrets
+.env.*

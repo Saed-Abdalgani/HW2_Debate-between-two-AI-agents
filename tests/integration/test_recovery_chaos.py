@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import os
 import signal
-import time
 from pathlib import Path
 
 import pytest
@@ -58,15 +57,18 @@ def test_chaos_kill_pro_agent(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -
             pro_child = judge.supervisor._children.get("pro")
             if pro_child:
                 killed = True
-                os.kill(pro_child.process.pid, signal.SIGTERM) if hasattr(signal, "SIGKILL") else pro_child.process.kill()
+                if hasattr(signal, "SIGKILL"):
+                    os.kill(pro_child.process.pid, signal.SIGTERM)
+                else:
+                    pro_child.process.kill()
                 # Sleep a tiny bit to ensure it dies before judge reads?
                 # Actually, the supervisor reading from pipe will just get EOF or Timeout
-                
+
     judge.on_turn = on_turn
 
     verdict = judge.run_debate("AI regulation should be stronger")
     assert killed, "Pro process was never killed"
-    
+
     # Assert FSM resumed and completed
     assert judge._state == State.DONE
     assert verdict.winner in ("pro", "con")

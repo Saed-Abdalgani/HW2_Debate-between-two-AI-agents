@@ -19,7 +19,7 @@ def test_budget_abort_cli(tmp_path: Path) -> None:
     override = cfg.model_dump()
     override["max_usd_per_debate"] = 0.001
     override["max_tokens_per_debate"] = 100
-    
+
     cfg_path = tmp_path / "budget_override.json"
     cfg_path.write_text(json.dumps(override), encoding="utf-8")
 

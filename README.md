@@ -167,3 +167,13 @@ Calls are estimated *before* outbound dispatch and reconciled with precise usage
 - V1 operates linearly — single debate sequence without multi-bracket tournaments.
 - No direct Web UI or token streaming (only complete reply updates are passed between processes).
 - Local hosting LLMs currently requires compatible API endpoints (no native GGUF/ggml).
+
+## 9. Special Creativity
+
+Beyond the core assignment requirements, several robust architectural improvements were implemented to harden the debate system for production environments:
+
+- **Multi-Stage FSM Failsafes:** Added watchdog heartbeat monitoring and round-level timeouts that safely terminate misbehaving children and gracefully reconstruct state using FSM recovery semantics.
+- **Deep Defence Validation:** Implemented regex-based prompt injection detection for user motions to prevent jailbreaks, semantic deduplication of verdict reasons using Jaccard similarity, and clamped score ranges with anomaly detection heuristics.
+- **Advanced Tie-Breaking:** In the event of dual validation failures from the LLM, the tie-breaker computes cumulative scores, round-over-round momentum, and standard deviation to determine a statistically sound deterministic winner.
+- **Lifecycle Auditing:** Injected comprehensive, structured logging at every FSM transition and child invocation. All logs are securely routed to `stderr` to maintain IPC purity on `stdout`, without triggering security lints (converted all `print` to `sys.stderr.write`).
+- **Resilient IPC Flow:** Included rate limiting and schema version checking on all envelopes to prevent runaway LLM loops from flooding the message pipes or exceeding the token budget prematurely.

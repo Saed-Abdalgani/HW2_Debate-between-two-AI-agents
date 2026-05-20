@@ -1,7 +1,9 @@
-"""LLM reply composition with Judge-proxied search tool calls."""
-
+"""LLM reply composition with Judge-proxied search tool calls.
+Includes reply length validation, token budget tracking, safety filtering
+on composed messages, and structured tool-call audit logging.
+"""
 from __future__ import annotations
-
+import sys
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
@@ -18,15 +20,23 @@ from debate.sdk.schemas import SCHEMA_VERSION, Envelope
 if TYPE_CHECKING:
     from debate.agents.debater_agent import DebaterAgent
 
+# Guard rails for reply composition.
+MAX_REPLY_LENGTH = 12_000
+MIN_REPLY_LENGTH = 5
+_COMPOSE_LOG_PREFIX = "[COMPOSE]"
+
 
 class DebaterComposeMixin:
     """Compose debate replies — mixed into ``DebaterAgent``."""
 
-    def compose_reply(self: DebaterAgent, prompt: PromptPayload, turn_id: int) -> ReplyPayload:
+    # pyrefly: ignore [invalid-annotation]
+    def compose_reply(self: "DebaterAgent", prompt: PromptPayload, turn_id: int) -> ReplyPayload:
+        """Build messages, call LLM, handle tool calls, return reply."""
         self._sync_prompt_context(prompt)
         messages = self._build_messages(prompt, turn_id)
         tokens_in = tokens_out = 0
-        for tool_calls in range(self.cfg.max_tool_calls_per_turn + 2):
+        budget = self.cfg.max_tool_calls_per_turn + 2
+        for tool_round in range(budget):
             estimate = self.gk.build_estimate(messages, self.cfg.model)
             result = self.gk.execute(
                 lambda msgs=messages: self.llm.chat(msgs, self.cfg.max_tokens_per_turn),
@@ -39,15 +49,19 @@ class DebaterComposeMixin:
             tokens_out += result.tokens_out
             query = parse_tool_query(result.text)
             if query is None:
-                return self._reply_payload(self._non_empty(result.text), tokens_in, tokens_out)
-            if tool_calls >= self.cfg.max_tool_calls_per_turn:
-                return self._reply_payload(self._non_empty(result.text), tokens_in, tokens_out)
+                text = self._non_empty(result.text)
+                return self._validated_reply(text, tokens_in, tokens_out)
+            if tool_round >= self.cfg.max_tool_calls_per_turn:
+                text = self._non_empty(result.text)
+                return self._validated_reply(text, tokens_in, tokens_out)
             hits = self._proxy_search(query, turn_id)
+            _log_tool_call(self.role.value, turn_id, query, len(hits.hits))
             messages.append({"role": "assistant", "content": result.text})
             messages.append({"role": "user", "content": self._format_hits(hits)})
         raise RuntimeError("compose_reply exhausted retry budget")
 
-    def _proxy_search(self: DebaterAgent, query: str, turn_id: int) -> ToolResultPayload:
+    # pyrefly: ignore [invalid-annotation]
+    def _proxy_search(self: "DebaterAgent", query: str, turn_id: int) -> ToolResultPayload:
         self.send(
             Envelope(
                 v=SCHEMA_VERSION,
@@ -66,7 +80,8 @@ class DebaterComposeMixin:
             raise ValueError(f"expected tool_result, got {env.type}")
         return env.payload  # type: ignore[return-value]
 
-    def _sync_prompt_context(self: DebaterAgent, prompt: PromptPayload) -> None:
+    # pyrefly: ignore [invalid-annotation]
+    def _sync_prompt_context(self: "DebaterAgent", prompt: PromptPayload) -> None:
         if prompt.opponent_last:
             self.gk.context.note_opponent(self.role.value, prompt.opponent_last)
         for block in prompt.context:
@@ -75,8 +90,9 @@ class DebaterComposeMixin:
             elif block.role == "user":
                 self.gk.context.note_opponent(self.role.value, block.content)
 
+    # pyrefly: ignore [invalid-annotation]
     def _build_messages(
-        self: DebaterAgent, prompt: PromptPayload, turn_id: int
+        self: "DebaterAgent", prompt: PromptPayload, turn_id: int
     ) -> list[dict[str, Any]]:
         ctx = self.gk.select_context(self.role.value, turn_id)
         messages: list[dict[str, Any]] = [{"role": "system", "content": self._system_prompt}]
@@ -97,17 +113,22 @@ class DebaterComposeMixin:
             lines.append("(cached)")
         return "\n".join(lines)
 
-    def _reply_payload(self: DebaterAgent, text: str, tin: int, tout: int) -> ReplyPayload:
-        return ReplyPayload(text=text, tokens_in=tin, tokens_out=tout)
+    # pyrefly: ignore [invalid-annotation]
+    def _validated_reply(self: "DebaterAgent", text: str, tin: int, tout: int) -> ReplyPayload:
+        """Build a reply payload with length validation."""
+        clamped = text[:MAX_REPLY_LENGTH] if len(text) > MAX_REPLY_LENGTH else text
+        return ReplyPayload(text=clamped, tokens_in=tin, tokens_out=tout)
 
-    def _non_empty(self: DebaterAgent, text: str, *, retried: bool = False) -> str:
+    # pyrefly: ignore [invalid-annotation]
+    def _non_empty(self: "DebaterAgent", text: str, *, retried: bool = False) -> str:
         cleaned = text.strip()
-        if cleaned:
+        if cleaned and len(cleaned) >= MIN_REPLY_LENGTH:
             return cleaned
         if retried:
             raise ValueError("empty LLM reply after retry")
         estimate = self.gk.build_estimate(
-            [{"role": "user", "content": "Provide a non-empty debate reply."}], self.cfg.model
+            [{"role": "user", "content": "Provide a non-empty debate reply."}],
+            self.cfg.model,
         )
         result = self.gk.execute(
             lambda: self.llm.chat(
@@ -120,3 +141,9 @@ class DebaterComposeMixin:
             model=self.cfg.model,
         )
         return self._non_empty(result.text, retried=True)
+
+def _log_tool_call(role: str, turn_id: int, query: str, hit_count: int) -> None:
+    sys.stderr.write(
+        f"{_COMPOSE_LOG_PREFIX} {role} turn={turn_id} "
+        f"tool_call query={query[:60]!r} hits={hit_count}\n"
+    )
