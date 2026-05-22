@@ -1,12 +1,15 @@
-"""LLM reply composition with Judge-proxied search tool calls.
-Includes reply length validation, token budget tracking, safety filtering
-on composed messages, and structured tool-call audit logging.
-"""
+"""LLM reply composition with Judge-proxied search tool calls."""
+
 from __future__ import annotations
-import sys
+
 from datetime import UTC, datetime
 from typing import TYPE_CHECKING, Any
 
+from debate.agents.debater_compose_format import (
+    format_search_hits,
+    ipc_safe_reply_text,
+    log_compose_tool,
+)
 from debate.agents.debater_prompt import parse_tool_query
 from debate.sdk.payloads import (
     MessageType,
@@ -20,17 +23,15 @@ from debate.sdk.schemas import SCHEMA_VERSION, Envelope
 if TYPE_CHECKING:
     from debate.agents.debater_agent import DebaterAgent
 
-# Guard rails for reply composition.
 MAX_REPLY_LENGTH = 12_000
 MIN_REPLY_LENGTH = 5
-_COMPOSE_LOG_PREFIX = "[COMPOSE]"
 
 
 class DebaterComposeMixin:
     """Compose debate replies — mixed into ``DebaterAgent``."""
 
     # pyrefly: ignore [invalid-annotation]
-    def compose_reply(self: "DebaterAgent", prompt: PromptPayload, turn_id: int) -> ReplyPayload:
+    def compose_reply(self: DebaterAgent, prompt: PromptPayload, turn_id: int) -> ReplyPayload:
         """Build messages, call LLM, handle tool calls, return reply."""
         self._sync_prompt_context(prompt)
         messages = self._build_messages(prompt, turn_id)
@@ -55,13 +56,13 @@ class DebaterComposeMixin:
                 text = self._non_empty(result.text)
                 return self._validated_reply(text, tokens_in, tokens_out)
             hits = self._proxy_search(query, turn_id)
-            _log_tool_call(self.role.value, turn_id, query, len(hits.hits))
+            log_compose_tool(self.role.value, turn_id, query, len(hits.hits))
             messages.append({"role": "assistant", "content": result.text})
-            messages.append({"role": "user", "content": self._format_hits(hits)})
+            messages.append({"role": "user", "content": format_search_hits(hits)})
         raise RuntimeError("compose_reply exhausted retry budget")
 
     # pyrefly: ignore [invalid-annotation]
-    def _proxy_search(self: "DebaterAgent", query: str, turn_id: int) -> ToolResultPayload:
+    def _proxy_search(self: DebaterAgent, query: str, turn_id: int) -> ToolResultPayload:
         self.send(
             Envelope(
                 v=SCHEMA_VERSION,
@@ -81,7 +82,7 @@ class DebaterComposeMixin:
         return env.payload  # type: ignore[return-value]
 
     # pyrefly: ignore [invalid-annotation]
-    def _sync_prompt_context(self: "DebaterAgent", prompt: PromptPayload) -> None:
+    def _sync_prompt_context(self: DebaterAgent, prompt: PromptPayload) -> None:
         if prompt.opponent_last:
             self.gk.context.note_opponent(self.role.value, prompt.opponent_last)
         for block in prompt.context:
@@ -92,7 +93,7 @@ class DebaterComposeMixin:
 
     # pyrefly: ignore [invalid-annotation]
     def _build_messages(
-        self: "DebaterAgent", prompt: PromptPayload, turn_id: int
+        self: DebaterAgent, prompt: PromptPayload, turn_id: int
     ) -> list[dict[str, Any]]:
         ctx = self.gk.select_context(self.role.value, turn_id)
         messages: list[dict[str, Any]] = [{"role": "system", "content": self._system_prompt}]
@@ -104,23 +105,14 @@ class DebaterComposeMixin:
         messages.append({"role": "user", "content": phase_note})
         return messages
 
-    @staticmethod
-    def _format_hits(payload: ToolResultPayload) -> str:
-        lines = ["Search results:"]
-        for hit in payload.hits:
-            lines.append(f"- {hit.title}: {hit.snippet[:200]}")
-        if payload.cached:
-            lines.append("(cached)")
-        return "\n".join(lines)
-
     # pyrefly: ignore [invalid-annotation]
-    def _validated_reply(self: "DebaterAgent", text: str, tin: int, tout: int) -> ReplyPayload:
-        """Build a reply payload with length validation."""
-        clamped = text[:MAX_REPLY_LENGTH] if len(text) > MAX_REPLY_LENGTH else text
+    def _validated_reply(self: DebaterAgent, text: str, tin: int, tout: int) -> ReplyPayload:
+        safe = ipc_safe_reply_text(text)
+        clamped = safe[:MAX_REPLY_LENGTH] if len(safe) > MAX_REPLY_LENGTH else safe
         return ReplyPayload(text=clamped, tokens_in=tin, tokens_out=tout)
 
     # pyrefly: ignore [invalid-annotation]
-    def _non_empty(self: "DebaterAgent", text: str, *, retried: bool = False) -> str:
+    def _non_empty(self: DebaterAgent, text: str, *, retried: bool = False) -> str:
         cleaned = text.strip()
         if cleaned and len(cleaned) >= MIN_REPLY_LENGTH:
             return cleaned
@@ -141,9 +133,3 @@ class DebaterComposeMixin:
             model=self.cfg.model,
         )
         return self._non_empty(result.text, retried=True)
-
-def _log_tool_call(role: str, turn_id: int, query: str, hit_count: int) -> None:
-    sys.stderr.write(
-        f"{_COMPOSE_LOG_PREFIX} {role} turn={turn_id} "
-        f"tool_call query={query[:60]!r} hits={hit_count}\n"
-    )

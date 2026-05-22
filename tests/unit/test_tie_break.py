@@ -29,10 +29,12 @@ def test_exact_cumulative_tie_con_wins() -> None:
     ]
     verdict = tie_break(history, last_speaker=Role.CON)
     assert verdict.winner == "con"
+    assert verdict.scores.con > verdict.scores.pro
 
 
 @pytest.mark.unit
 def test_empty_history_defaults_to_con() -> None:
     verdict = tie_break([])
     assert verdict.winner == "con"
+    assert verdict.scores.con > verdict.scores.pro
     assert len(verdict.reasons) >= 3
