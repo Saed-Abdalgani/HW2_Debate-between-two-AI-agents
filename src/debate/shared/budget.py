@@ -35,6 +35,8 @@ class Usage:
 
 @dataclass
 class BudgetCaps:
+    # Upper bound on reserved output tokens for one gated call (Gatekeeper sets this
+    # to max(debater turn cap, summary cap, verdict cap) on the judge ledger).
     max_tokens_per_turn: int
     max_tokens_per_debate: int
     max_usd_per_debate: Decimal

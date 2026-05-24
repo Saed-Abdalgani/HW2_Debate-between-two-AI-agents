@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 from debate.agents.judge_child import recv_reply, send_prompt, shutdown_child
 from debate.sdk.payloads import DebatePhase, MessageType
+from debate.shared.diag_log import write_diag_line
 
 if TYPE_CHECKING:
     from debate.agents.judge_agent import JudgeAgent
@@ -77,4 +77,4 @@ def _log(event: str, detail: str = "") -> None:
     msg = f"{_LOG_PREFIX} {event}"
     if detail:
         msg += f": {detail}"
-    sys.stderr.write(msg + "\n")
+    write_diag_line(msg)

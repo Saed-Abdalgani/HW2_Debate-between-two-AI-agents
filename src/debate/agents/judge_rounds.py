@@ -7,10 +7,10 @@ and summary quality checks.
 from __future__ import annotations
 
 import math
-import sys
 from typing import TYPE_CHECKING
 
 from debate.sdk.payloads import DebatePhase, ScorePayload
+from debate.shared.diag_log import write_diag_line
 
 if TYPE_CHECKING:
     from debate.agents.judge_agent import JudgeAgent
@@ -135,4 +135,4 @@ def _log(event: str, detail: str = "") -> None:
     msg = f"{_LOG_PREFIX} {event}"
     if detail:
         msg += f": {detail}"
-    sys.stderr.write(msg + "\n")
+    write_diag_line(msg)

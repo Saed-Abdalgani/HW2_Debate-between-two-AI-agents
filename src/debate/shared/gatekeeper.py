@@ -39,16 +39,29 @@ class Gatekeeper:
         self.logger = logger
         self.run_dir = run_dir
         self._lock = RLock()
+        # Single-call output ceiling must cover every path through this gatekeeper
+        # (debater turns, judge score/summary, verdict) so preflight matches real max_tokens.
+        max_out = max(
+            cfg.max_tokens_per_turn,
+            cfg.summary_max_tokens,
+            cfg.max_tokens_for_verdict,
+        )
         self._caps = BudgetCaps(
-            max_tokens_per_turn=cfg.max_tokens_per_turn,
+            max_tokens_per_turn=max_out,
             max_tokens_per_debate=cfg.max_tokens_per_debate,
             max_usd_per_debate=Decimal(str(cfg.max_usd_per_debate)),
             max_requests_per_minute=cfg.max_requests_per_minute,
         )
 
-    def build_estimate(self, messages: list[dict[str, Any]], model: str) -> Usage:
+    def build_estimate(
+        self,
+        messages: list[dict[str, Any]],
+        model: str,
+        *,
+        tokens_out: int | None = None,
+    ) -> Usage:
         tin = estimate_tokens(messages, model)
-        tout = self.cfg.max_tokens_per_turn
+        tout = tokens_out if tokens_out is not None else self.cfg.max_tokens_per_turn
         partial = Usage(tokens_in=tin, tokens_out=tout, requests=1)
         return Usage(
             tokens_in=tin,
@@ -58,13 +71,7 @@ class Gatekeeper:
         )
 
     def execute(
-        self,
-        fn: Callable[[], T],
-        *,
-        estimate: Usage,
-        role: str,
-        turn_id: int,
-        model: str,
+        self, fn: Callable[[], T], *, estimate: Usage, role: str, turn_id: int, model: str
     ) -> T:
         with self._lock:
             reason = self.ledger.would_exceed(estimate, self._caps)

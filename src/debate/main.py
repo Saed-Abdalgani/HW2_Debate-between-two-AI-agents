@@ -10,6 +10,7 @@ from pathlib import Path
 
 from debate.runner import run_debate
 from debate.shared.config import load_config
+from debate.shared.secrets import MissingSecretError
 from debate.ui.menu import run_menu
 
 _AGENT: object | None = None
@@ -35,7 +36,7 @@ def _parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--non-interactive",
         action="store_true",
-        help="Run one stub debate and exit (no menu)",
+        help="Run one debate and exit (no menu); requires LLM_API_KEY unless --stub",
     )
     parser.add_argument("--rounds", type=int, default=None, help="Override round count")
     parser.add_argument("--stub", action="store_true", help="Force stub LLM for judge and children")
@@ -44,6 +45,19 @@ def _parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = _parse_args()
+    try:
+        _main_body(args)
+    except MissingSecretError as exc:
+        sys.stderr.write(
+            "\nFATAL: "
+            + str(exc)
+            + "\nCopy .env-example to .env in the repo root and set a non-empty LLM_API_KEY.\n"
+            "For offline or CI runs without a provider key, pass --stub explicitly.\n"
+        )
+        raise SystemExit(2) from exc
+
+
+def _main_body(args: argparse.Namespace) -> None:
     if args.config:
         import os
 
@@ -56,7 +70,7 @@ def main() -> None:
 
     if args.non_interactive:
         motion = args.motion or "Remote work should remain the default for knowledge workers."
-        outcome = run_debate(cfg, motion, live=False, force_stub=args.stub or True)
+        outcome = run_debate(cfg, motion, live=False, force_stub=args.stub)
         print(f"Winner: {outcome.verdict.winner}  run={outcome.run_dir}")
         raise SystemExit(outcome.exit_code)
 

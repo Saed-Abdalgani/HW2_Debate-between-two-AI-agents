@@ -8,11 +8,11 @@ from __future__ import annotations
 
 import json
 import re
-import sys
 from dataclasses import dataclass
 
 from debate.sdk.payloads import VerdictPayload
 from debate.sdk.schemas import VerdictValidationError, validate_verdict
+from debate.shared.diag_log import write_diag_line
 
 _JSON_FENCE = re.compile(r"```(?:json)?\s*([\s\S]*?)```", re.IGNORECASE)
 _CONTROL_CHARS = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]")
@@ -128,4 +128,4 @@ def _log(event: str, detail: str = "") -> None:
     msg = f"{_LOG_PREFIX} {event}"
     if detail:
         msg += f": {detail}"
-    sys.stderr.write(msg + "\n")
+    write_diag_line(msg)

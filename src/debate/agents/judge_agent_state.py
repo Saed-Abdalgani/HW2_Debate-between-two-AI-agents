@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-import sys
+from debate.shared.diag_log import write_diag_line
 
 
 class JudgeAgentStateMixin:
@@ -54,4 +54,4 @@ class JudgeAgentStateMixin:
         msg = f"[JUDGE] {event}"
         if detail:
             msg += f": {detail}"
-        sys.stderr.write(msg + "\n")
+        write_diag_line(msg)

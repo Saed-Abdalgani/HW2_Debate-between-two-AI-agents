@@ -17,6 +17,7 @@ class DebateStatus:
     speaker: str = "—"
     round_num: int = 0
     round_limit: int = 1
+    llm_mode: str = "live"
     pro_snippet: str = ""
     con_snippet: str = ""
     tokens_in: int = 0
@@ -38,25 +39,34 @@ def truncate(text: str, limit: int = 120) -> str:
 
 def status_from_agent(agent: Any, *, speaker: str) -> DebateStatus:
     snap = agent.gk.ledger.snapshot()
+    t0 = getattr(agent, "_ui_started_at", None)
+    if t0 is None:
+        t0 = time.monotonic()
+    mode = str(getattr(agent, "_debate_llm_mode", "live"))
     return DebateStatus(
         motion=agent._motion,
         speaker=speaker,
         round_num=agent._ctx.round,
         round_limit=agent._ctx.round_limit,
+        llm_mode=mode,
         pro_snippet=truncate(agent._last_pro),
         con_snippet=truncate(agent._last_con),
         tokens_in=int(snap.get("tokens_in", 0)),
         tokens_out=int(snap.get("tokens_out", 0)),
         usd_spent=float(snap.get("usd_spent", 0)),
         max_usd=float(agent.cfg.max_usd_per_debate),
+        started_at=float(t0),
     )
 
 
 def render_panel(status: DebateStatus) -> Panel:
+    round_line = f"Round {status.round_num} / {status.round_limit}"
     table = Table.grid(padding=(0, 1))
     table.add_row("Motion", status.motion[:72] + ("…" if len(status.motion) > 72 else ""))
     table.add_row("Speaker", status.speaker.upper())
-    table.add_row("Round", f"{status.round_num} / {status.round_limit}")
+    if status.llm_mode == "stub":
+        table.add_row("LLM", Text("STUB (pass --stub only for tests)", style="yellow"))
+    table.add_row("Round", Text(round_line, style="bold cyan"))
     table.add_row(
         "Budget",
         f"${status.usd_spent:.4f} / ${status.max_usd:.2f}  |  "
@@ -71,4 +81,11 @@ def render_panel(status: DebateStatus) -> Panel:
         Text(status.con_snippet, style="cyan"),
     )
     table.add_row("Last replies", sides)
-    return Panel(table, title="HW2 Debate", border_style="blue")
+    return Panel(
+        table,
+        title="HW2 Debate",
+        title_align="left",
+        subtitle=round_line,
+        subtitle_align="left",
+        border_style="blue",
+    )

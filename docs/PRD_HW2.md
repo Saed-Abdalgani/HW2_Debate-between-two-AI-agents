@@ -203,7 +203,7 @@ search; children inherit a restricted environment.
   "max_tokens_per_turn": 800,
   "max_tokens_per_debate": 60000,
   "max_usd_per_debate": 1.50,
-  "max_requests_per_minute": 30,
+  "max_requests_per_minute": 120,
   "heartbeat_sec": 5,
   "heartbeat_timeout_sec": 3,
   "max_restarts_per_child": 2,

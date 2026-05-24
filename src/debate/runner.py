@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import os
+import sys
+import time
 from dataclasses import dataclass
 
 from rich.live import Live
@@ -13,8 +15,9 @@ from debate.orchestration.state_machine import State
 from debate.sdk.payloads import VerdictPayload
 from debate.shared.child_env import debate_child_env
 from debate.shared.config import Config
-from debate.shared.secrets import get_env
-from debate.ui.status import DebateStatus, render_panel, status_from_agent
+from debate.shared.diag_log import configure_diag_sink
+from debate.shared.secrets import get_key
+from debate.ui.status import render_panel, status_from_agent
 
 
 @dataclass(frozen=True)
@@ -44,26 +47,36 @@ def run_debate(
     live: bool = True,
     force_stub: bool = False,
 ) -> RunOutcome:
-    use_stub = force_stub or not get_env("LLM_API_KEY")
+    if not force_stub:
+        get_key("LLM_API_KEY")
+    use_stub = bool(force_stub)
     if use_stub:
         os.environ.setdefault("DEBATE_STUB_LLM", "echo")
     llm = JudgeDebateStubLLM() if use_stub else None
     child_env = debate_child_env(use_stub=use_stub)
     judge = JudgeAgent.build(cfg, llm=llm, child_env=child_env)
     _register_for_signals(judge)
-    status = DebateStatus(motion=motion, round_limit=cfg.rounds)
+    t0 = time.monotonic()
+    judge._ui_started_at = t0
+    judge._debate_llm_mode = "stub" if use_stub else "live"
+    judge._ui_last_speaker = "—"
 
-    def on_turn(speaker: str) -> None:
-        nonlocal status
-        status = status_from_agent(judge, speaker=speaker)
-
-    judge.on_turn = on_turn
+    def live_panel():
+        return render_panel(status_from_agent(judge, speaker=judge._ui_last_speaker))
 
     if live:
-        with Live(render_panel(status), refresh_per_second=4) as panel:
-            judge._live = panel
-            verdict = judge.run_debate(motion)
-            panel.update(render_panel(status_from_agent(judge, speaker="done")))
+        diag_path = judge.logger.run_dir / "judge.diag.log"
+        configure_diag_sink(str(diag_path))
+        try:
+            with Live(get_renderable=live_panel, refresh_per_second=8) as panel:
+                judge._live = panel
+                panel.refresh()
+                verdict = judge.run_debate(motion)
+                judge._ui_last_speaker = "done"
+                panel.refresh()
+        finally:
+            configure_diag_sink(None)
+            sys.stderr.write(f"[RUNNER] Judge diagnostics log: {diag_path}\n")
     else:
         verdict = judge.run_debate(motion)
 

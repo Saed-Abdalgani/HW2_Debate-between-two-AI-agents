@@ -2,11 +2,11 @@
 
 from __future__ import annotations
 
-import sys
 from typing import TYPE_CHECKING
 
 from debate.agents.judge_prompts import load_judge_system
 from debate.sdk.payloads import VerdictPayload, VerdictScores
+from debate.shared.diag_log import write_diag_line
 
 if TYPE_CHECKING:
     from debate.agents.judge_agent import JudgeAgent
@@ -26,7 +26,11 @@ def render_verdict(agent: JudgeAgent) -> str:
             "content": (f"Debate scores:\n{history}\nReturn final verdict JSON."),
         },
     ]
-    estimate = agent.gk.build_estimate(messages, agent.cfg.judge_model)
+    estimate = agent.gk.build_estimate(
+        messages,
+        agent.cfg.judge_model,
+        tokens_out=agent.cfg.max_tokens_for_verdict,
+    )
     result = agent.gk.execute(
         lambda: agent.llm.chat(messages, agent.cfg.max_tokens_for_verdict),
         estimate=estimate,
@@ -84,4 +88,4 @@ def _log(event: str, detail: str = "") -> None:
     msg = f"{_LOG_PREFIX} {event}"
     if detail:
         msg += f": {detail}"
-    sys.stderr.write(msg + "\n")
+    write_diag_line(msg)

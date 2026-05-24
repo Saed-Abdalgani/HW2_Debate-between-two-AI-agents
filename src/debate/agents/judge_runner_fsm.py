@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import sys
 import time
 from typing import TYPE_CHECKING
 
@@ -18,6 +17,7 @@ from debate.agents.judge_tie_break import tie_break
 from debate.agents.judge_verdict import validate_verdict_stages
 from debate.orchestration.state_machine import Event, State, transition
 from debate.sdk.payloads import VerdictPayload
+from debate.shared.diag_log import write_diag_line
 
 if TYPE_CHECKING:
     from debate.agents.judge_agent import JudgeAgent
@@ -31,8 +31,8 @@ def step(agent: JudgeAgent, timeout: float) -> VerdictPayload | None:
         agent._last_pro = child_turn(agent, "pro", phase_for_round(agent._ctx.round), timeout)
         agent._state = transition(s, Event.PRO_REPLY, agent._ctx)
         score_reply(agent, "pro", agent._last_pro, agent._ctx.round, agent._turn_id)
-        agent._pulse("pro")
         agent._state = transition(agent._state, Event.SCORED, agent._ctx)
+        agent._pulse("pro")
     elif s == State.CON_TURN:
         agent._last_con = child_turn(
             agent,
@@ -44,8 +44,8 @@ def step(agent: JudgeAgent, timeout: float) -> VerdictPayload | None:
         agent._state = transition(s, Event.CON_REPLY, agent._ctx)
         score_reply(agent, "con", agent._last_con, agent._ctx.round, agent._turn_id)
         summarise_round(agent, agent._last_pro, agent._last_con, agent._turn_id)
-        agent._pulse("con")
         agent._state = transition(agent._state, Event.SCORED, agent._ctx)
+        agent._pulse("con")
     elif s == State.CLOSING:
         closing_round(agent, timeout)
         agent._state = transition(s, Event.CLOSINGS_RECEIVED, agent._ctx)
@@ -95,4 +95,4 @@ def on_child_error(agent: JudgeAgent) -> None:
 
 
 def runner_log(event: str, detail: str = "") -> None:
-    sys.stderr.write((f"{_LOG} {event}: {detail}" if detail else f"{_LOG} {event}") + "\n")
+    write_diag_line(f"{_LOG} {event}: {detail}" if detail else f"{_LOG} {event}")

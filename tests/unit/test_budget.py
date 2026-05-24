@@ -15,11 +15,27 @@ from debate.shared.pricing import UnknownModelError, load_pricing_table, price
 @pytest.fixture
 def caps():
     cfg = load_config()
+    max_out = max(
+        cfg.max_tokens_per_turn,
+        cfg.summary_max_tokens,
+        cfg.max_tokens_for_verdict,
+    )
     return BudgetCaps(
-        max_tokens_per_turn=cfg.max_tokens_per_turn,
+        max_tokens_per_turn=max_out,
         max_tokens_per_debate=cfg.max_tokens_per_debate,
         max_usd_per_debate=Decimal(str(cfg.max_usd_per_debate)),
         max_requests_per_minute=cfg.max_requests_per_minute,
+    )
+
+
+@pytest.mark.unit
+def test_default_config_rpm_allows_judge_verdict_call() -> None:
+    """Parent judge needs 3 RPM slots per round plus one for verdict (3*rounds + 1)."""
+    cfg = load_config()
+    required = 3 * cfg.rounds + 1
+    assert cfg.max_requests_per_minute >= required, (
+        f"max_requests_per_minute ({cfg.max_requests_per_minute}) must be >= "
+        f"3 * rounds + 1 ({required}) so the verdict LLM is not blocked by RPM alone"
     )
 
 

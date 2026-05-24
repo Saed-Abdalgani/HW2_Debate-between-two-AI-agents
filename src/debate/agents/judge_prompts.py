@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import re
-import sys
 from pathlib import Path
 
 from debate.agents.judge_prompts_misc import (
@@ -11,6 +10,7 @@ from debate.agents.judge_prompts_misc import (
     format_retry_note,
     prompt_stats,
 )
+from debate.shared.diag_log import write_diag_line
 
 _ROOT = Path(__file__).resolve().parents[3]
 _PROMPTS = _ROOT / "config" / "prompts"
@@ -100,7 +100,7 @@ def _log(event: str, detail: str = "") -> None:
     msg = f"{_LOG_PREFIX} {event}"
     if detail:
         msg += f": {detail}"
-    sys.stderr.write(msg + "\n")
+    write_diag_line(msg)
 
 
 __all__ = [

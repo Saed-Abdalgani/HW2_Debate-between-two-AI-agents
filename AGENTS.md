@@ -78,8 +78,8 @@ This runs `setup` → `check` → `run` (same commands as the two sections above
 
 - Python 3.12+ (project uses 3.14 in local `.python-version` if present)
 - `uv` installable via `python -m pip install uv` if missing
-- API keys are **not** required for the current scaffold (`debate.main` prints a
-  banner only). Later phases need `.env` copied from `.env-example`.
+- API keys are **required** for real debates (`LLM_API_KEY` in `.env` from `.env-example`).
+  Pass **`--stub`** for offline stub LLMs (CI / no provider key).
 
 ---
 

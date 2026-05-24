@@ -2,18 +2,14 @@
 
 from __future__ import annotations
 
-import json
-
 from rich.console import Console
 from rich.prompt import Prompt
 
-from debate.runner import run_debate
 from debate.shared.config import Config, load_config
 from debate.shared.logger import project_root
+from debate.ui.menu_debate import DEFAULT_MOTION, load_motions, start_menu_debate
 from debate.ui.replay import list_run_dirs, replay_run
 from debate.ui.tunables import apply_budget_usd, apply_max_tokens, apply_model, apply_rounds
-
-_DEFAULT_MOTION = "Artificial intelligence will do more good than harm for humanity."
 
 
 class Menu:
@@ -23,14 +19,7 @@ class Menu:
         self.cfg = cfg
         self.console = console or Console()
         self._root = project_root()
-        self._motions = self._load_motions()
-
-    def _load_motions(self) -> list[str]:
-        path = self._root / "config" / "motions.json"
-        if not path.is_file():
-            return [_DEFAULT_MOTION]
-        data = json.loads(path.read_text(encoding="utf-8"))
-        return list(data.get("motions", [_DEFAULT_MOTION]))
+        self._motions = load_motions(self._root)
 
     def run_loop(self) -> None:
         while True:
@@ -45,7 +34,7 @@ class Menu:
                 self.console.print("\n[yellow]Back to menu.[/]")
                 continue
             if choice == "1":
-                self._start(self._motions[0] if self._motions else _DEFAULT_MOTION)
+                self._start(self._motions[0] if self._motions else DEFAULT_MOTION)
             elif choice == "2":
                 self._pick_motion()
             elif choice == "3":
@@ -60,9 +49,7 @@ class Menu:
                 self.console.print("[red]Invalid choice.[/]")
 
     def _start(self, motion: str) -> None:
-        self.console.print(f"\n[cyan]Starting debate[/]: {motion[:70]}…")
-        outcome = run_debate(self.cfg, motion, live=True)
-        self._print_result(outcome.verdict, outcome.run_dir, outcome.exit_code)
+        start_menu_debate(self.console, self.cfg, motion)
 
     def _pick_motion(self) -> None:
         for i, m in enumerate(self._motions, start=1):
@@ -128,13 +115,6 @@ class Menu:
             replay_run(runs[int(raw) - 1], self.console)
         except (KeyboardInterrupt, ValueError, IndexError):
             self.console.print("[red]Invalid selection.[/]")
-
-    def _print_result(self, verdict, run_dir: str, code: int) -> None:
-        self.console.print(f"\n[bold green]Winner:[/] {verdict.winner.upper()}")
-        self.console.print(f"Scores: pro={verdict.scores.pro} con={verdict.scores.con}")
-        for r in verdict.reasons[:3]:
-            self.console.print(f"  • {r[:90]}")
-        self.console.print(f"Transcript: {run_dir}  (exit {code})")
 
 
 def run_menu(cfg: Config | None = None) -> None:

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from typing import Any
@@ -33,6 +34,7 @@ class JudgeAgent(JudgeAgentStateMixin):
     watchdog: Watchdog | None = None
     on_turn: Callable[[str], None] | None = None
     _live: Any = None
+    _ui_last_speaker: str = "—"
     _motion: str = ""
     _turn_id: int = 0
     _scores: list[ScorePayload] = field(default_factory=list)
@@ -62,12 +64,13 @@ class JudgeAgent(JudgeAgentStateMixin):
         )
 
     def _pulse(self, speaker: str) -> None:
+        self._ui_last_speaker = speaker
         if self.on_turn:
             self.on_turn(speaker)
-        if self._live is not None:
-            from debate.ui.status import render_panel, status_from_agent
-
-            self._live.update(render_panel(status_from_agent(self, speaker=speaker)))
+        live = self._live
+        if live is not None:
+            live.refresh()
+            sys.stdout.flush()
 
     def run_debate(self, motion: str) -> VerdictPayload:
         validated = validate_motion(motion)
