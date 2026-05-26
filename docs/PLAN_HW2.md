@@ -479,13 +479,3 @@ spoke last (`con`) — documented and reproducible.
 | P9    | Chaos + budget integration tests, README report. | All SC-1..SC-7 from PRD pass.                                 |
 
 ---
-
-## 9. Open Questions (resolve before P7)
-
-1. Which LLM provider is canonical for grading? (default: `gpt-4o-mini`.)
-2. Which search provider has the most reliable free tier for the course?
-3. Should the Judge use a *different* (stronger) model than the debaters?
-   — supported via `cfg.judge_model`, default = `cfg.model`.
-4. Should transcripts be uploaded to the course portal or kept local? — v1
-   keeps local; portal upload is a follow-up.
-

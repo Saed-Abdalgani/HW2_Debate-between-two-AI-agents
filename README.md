@@ -632,6 +632,6 @@ The following narrative is a **readable condensation** of a successful end-to-en
 
 The shipped `config/debate.json` sets **`"rounds": 10`**, matching the course PRD’s ten-ping-per-side default and the integration tests that assume a full-length debate.
 
-If you deliberately configure **5 rounds** (via JSON or the runtime tunables menu) for a shorter demo or grading run, expect roughly **half** the LLM turns, search volume, and wall-clock time, at the cost of less depth for rebuttals and evidence accumulation. This repository’s **default remains 10** unless you change it for a stated reason such as lab time limits.
+## 14. Authoring scale
 
-[Insert Budget / Ledger Screenshot Here]
+To produce the full project (application code, tests, scripts, `config/`, root metadata such as `README.md` / `AGENTS.md` / `pyproject.toml`, plus `docs/*.md`), the combined text measures on the order of **110k tokens** under **tiktoken** encoding **`cl100k_base`** — a scale estimate of the authored artifact, not a Cursor invoice or provider bill.
