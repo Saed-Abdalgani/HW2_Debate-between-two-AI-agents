@@ -89,24 +89,39 @@ def verdict_scores_for_winner(
     totals: dict[str, float],
     winner: Role,
     *,
+    counts: dict[str, int] | None = None,
     eps: float = 2.0,
 ) -> VerdictScores:
-    """Map cumulative totals to display scores with winner strictly ahead."""
+    """Map cumulative totals to 0-100 display scores with winner strictly ahead.
+
+    Round scores are each on a 0-100 scale; cumulative sums can far exceed 100.
+    Normalize by theoretical max (100 * scored rounds per side) before building
+    ``VerdictScores`` (schema ``le=100``).
+    """
     pt, ct = totals["pro"], totals["con"]
+    if counts:
+        n_pro = int(counts.get("pro", 0))
+        n_con = int(counts.get("con", 0))
+        denom = max(float(n_pro * 100), float(n_con * 100), 1.0)
+    else:
+        # Unknown round counts: scale by the larger cumulative so ratios stay ≤ 1.
+        denom = max(pt, ct, 1.0)
+    p_norm = min(100.0, max(0.0, (pt / denom) * 100.0))
+    c_norm = min(100.0, max(0.0, (ct / denom) * 100.0))
     if winner == Role.PRO:
-        if pt > ct:
-            return VerdictScores(pro=pt, con=ct)
-        bump = min(eps, max(0.1, 100.0 - pt, ct))
+        if p_norm > c_norm:
+            return VerdictScores(pro=p_norm, con=c_norm)
+        bump = min(eps, max(0.1, 100.0 - p_norm, c_norm))
         return VerdictScores(
-            pro=min(100.0, max(pt, ct) + bump),
-            con=max(0.0, min(pt, ct) - bump),
+            pro=min(100.0, max(p_norm, c_norm) + bump),
+            con=max(0.0, min(p_norm, c_norm) - bump),
         )
-    if ct > pt:
-        return VerdictScores(pro=pt, con=ct)
-    bump = min(eps, max(0.1, 100.0 - ct, pt))
+    if c_norm > p_norm:
+        return VerdictScores(pro=p_norm, con=c_norm)
+    bump = min(eps, max(0.1, 100.0 - c_norm, p_norm))
     return VerdictScores(
-        pro=max(0.0, min(pt, ct) - bump),
-        con=min(100.0, max(pt, ct) + bump),
+        pro=max(0.0, min(p_norm, c_norm) - bump),
+        con=min(100.0, max(p_norm, c_norm) + bump),
     )
 
 

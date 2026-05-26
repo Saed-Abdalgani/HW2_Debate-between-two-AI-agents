@@ -1,35 +1,22 @@
-"""Built-in Router skills: search, summarise, score.
+"""Built-in Router skills: search, summarise, score, round_eval.
 
-Each ``make_*_skill`` factory accepts a provider client (Protocol typed so it
-swaps cleanly when P4 ships ``LLMClient`` / ``SearchClient``) and the
-``Gatekeeper`` instance. Skill calls dispatch through ``Gatekeeper.execute`` so
-budget and RPM enforcement apply on **every** outbound call (P3.4). The
-``search`` skill is registered on the Router and benefits from cache-hit
-bypass (P3.6); cache misses still pay the Gatekeeper tax.
+Skill factories dispatch through ``Gatekeeper.execute`` for budget/RPM (P3.4).
+``search`` uses cache-hit bypass (P3.6); round-eval lives in ``skills_round_eval``.
 """
 
 from __future__ import annotations
 
 from collections.abc import Callable
 from decimal import Decimal
-from typing import TYPE_CHECKING, Any, Protocol
+from typing import Any
 
-from debate.sdk.payloads import ScorePayload, SearchHit, ToolResultPayload
-
-if TYPE_CHECKING:
-    from debate.sdk.llm_client import ChatResult
+from debate.sdk.payloads import ScorePayload, ToolResultPayload
 from debate.shared.budget import Usage
 from debate.shared.gatekeeper import Gatekeeper
+from debate.shared.skills_proto import LLMClientProto, SearchClientProto
+from debate.shared.skills_round_eval import make_round_eval_skill
 
 _SEARCH_BILLING_MODEL = "search"
-
-
-class LLMClientProto(Protocol):
-    def chat(self, messages: list[dict[str, Any]], max_tokens: int) -> ChatResult: ...
-
-
-class SearchClientProto(Protocol):
-    def query(self, text: str, k: int) -> list[SearchHit]: ...
 
 
 def make_search_skill(
@@ -81,7 +68,7 @@ def make_summarise_skill(
 def make_score_skill(
     client: LLMClientProto, gk: Gatekeeper, *, rubric: str, model: str
 ) -> Callable[[dict[str, Any]], ScorePayload]:
-    """Wrap an LLM call with the scoring rubric; parses a ScorePayload."""
+    """Wrap an LLM call with the scoring rubric; parses a ``ScorePayload``."""
 
     def skill(args: dict[str, Any]) -> ScorePayload:
         text = str(args["text"])
@@ -119,3 +106,13 @@ def _parse_score(text: str, *, for_role: str, round_id: int) -> ScorePayload:
         elif line.startswith("- "):
             points.append(line[2:].strip())
     return ScorePayload(for_role=for_role, round=round_id, points=points, score=score)
+
+
+__all__ = [
+    "LLMClientProto",
+    "SearchClientProto",
+    "make_round_eval_skill",
+    "make_score_skill",
+    "make_search_skill",
+    "make_summarise_skill",
+]

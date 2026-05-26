@@ -20,6 +20,7 @@ def tie_break(
     clean = validate_score_history(history)
     stats = compute_score_stats(clean)
     totals: dict[str, float] = stats["totals"]  # type: ignore[assignment]
+    counts: dict[str, int] = stats["counts"]  # type: ignore[assignment]
 
     if not clean:
         winner: Role = last_speaker
@@ -32,7 +33,7 @@ def tie_break(
         winner = last_speaker
 
     margin = abs(totals["pro"] - totals["con"])
-    scores = verdict_scores_for_winner(totals, winner)
+    scores = verdict_scores_for_winner(totals, winner, counts=counts)
     reasons = format_tie_break_analysis(winner, totals, margin, last_speaker, stats)
     return VerdictPayload(
         winner=winner.value,  # type: ignore[arg-type]

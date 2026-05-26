@@ -19,7 +19,7 @@ class _CapturingLLM:
     def __init__(self) -> None:
         self.last_messages: list[dict[str, Any]] = []
 
-    def chat(self, messages: list[dict[str, Any]], max_tokens: int):
+    def chat(self, messages: list[dict[str, Any]], max_tokens: int, *, response_format=None):
         from debate.sdk.llm_client import ChatResult
 
         self.last_messages = messages

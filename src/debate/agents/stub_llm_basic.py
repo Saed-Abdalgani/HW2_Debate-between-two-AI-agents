@@ -17,7 +17,13 @@ class EchoStubLLM:
     model: str = "gpt-4o-mini"
     latency_sec: float = 0.0
 
-    def chat(self, messages: list[dict[str, Any]], max_tokens: int) -> ChatResult:
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        *,
+        response_format: dict[str, Any] | None = None,
+    ) -> ChatResult:
         if self.latency_sec > 0:
             time.sleep(self.latency_sec)
         user = ""
@@ -42,14 +48,16 @@ class ErrorStubLLM:
     fail_on_calls: set[int] = field(default_factory=lambda: {1})
     _calls: int = field(default=0, init=False)
 
-    def chat(self, messages: list[dict[str, Any]], max_tokens: int) -> ChatResult:
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        *,
+        response_format: dict[str, Any] | None = None,
+    ) -> ChatResult:
         self._calls += 1
         if self._calls in self.fail_on_calls:
-            raise TransientProviderError(
-                f"simulated failure on call {self._calls}",
-                # pyrefly: ignore [unexpected-keyword]
-                provider_status=500,
-            )
+            raise TransientProviderError(f"simulated failure on call {self._calls}")
         return ChatResult(
             text="recovered reply",
             tokens_in=4,
@@ -66,14 +74,16 @@ class RateLimitStubLLM:
     rate_limit_count: int = 3
     _calls: int = field(default=0, init=False)
 
-    def chat(self, messages: list[dict[str, Any]], max_tokens: int) -> ChatResult:
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        *,
+        response_format: dict[str, Any] | None = None,
+    ) -> ChatResult:
         self._calls += 1
         if self._calls <= self.rate_limit_count:
-            raise TransientProviderError(
-                "rate limited",
-                # pyrefly: ignore [unexpected-keyword]
-                provider_status=429,
-            )
+            raise TransientProviderError("rate limited")
         return ChatResult(
             text="success after rate limit",
             tokens_in=4,

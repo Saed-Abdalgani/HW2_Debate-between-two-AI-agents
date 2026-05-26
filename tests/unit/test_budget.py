@@ -9,7 +9,7 @@ import pytest
 
 from debate.shared.budget import BudgetCaps, Ledger, Usage
 from debate.shared.config import load_config
-from debate.shared.pricing import UnknownModelError, load_pricing_table, price
+from debate.shared.pricing import load_pricing_table, price
 
 
 @pytest.fixture
@@ -96,9 +96,9 @@ def test_ledger_add_and_snapshot_deepcopy() -> None:
 
 
 @pytest.mark.unit
-def test_pricing_unknown_model_rejected() -> None:
-    with pytest.raises(UnknownModelError):
-        price(Usage(tokens_in=1, tokens_out=1), "not-a-real-model", table=load_pricing_table())
+def test_pricing_unknown_model_defaults_to_zero() -> None:
+    usd = price(Usage(tokens_in=1, tokens_out=1), "not-a-real-model", table=load_pricing_table())
+    assert usd == Decimal("0")
 
 
 @pytest.mark.unit

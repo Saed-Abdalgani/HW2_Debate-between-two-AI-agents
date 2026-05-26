@@ -1,4 +1,4 @@
-"""Load debate.json with .env overlay; fail fast with aggregated validation errors."""
+"""Load debate.json with .env overlay; fail fast on aggregated validation errors."""
 
 from __future__ import annotations
 
@@ -7,8 +7,9 @@ from pathlib import Path
 from typing import Any
 
 from dotenv import load_dotenv
-from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from pydantic import ValidationError
 
+from debate.shared.config_model import Config, ConfigError, SearchConfig
 from debate.shared.secrets import get_env
 
 _ROOT = Path(__file__).resolve().parents[3]
@@ -35,6 +36,7 @@ _INT_KEYS = frozenset(
         "heartbeat_max_consecutive_misses",
         "max_tool_calls_per_turn",
         "max_tokens_for_verdict",
+        "round_eval_max_tokens",
     }
 )
 _FLOAT_KEYS = frozenset(
@@ -52,53 +54,10 @@ _FLOAT_KEYS = frozenset(
         "recv_default_timeout_sec",
     }
 )
-
-
-class ConfigError(Exception):
-    """All validation failures from a single load attempt."""
-
-    def __init__(self, issues: list[str]) -> None:
-        self.issues = issues
-        super().__init__("; ".join(issues))
-
-
-class SearchConfig(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    provider: str = Field(min_length=1)
-    max_results: int = Field(ge=1, le=50)
-    cache: bool
-
-
-class Config(BaseModel):
-    model_config = ConfigDict(extra="forbid")
-    rounds: int = Field(ge=1)
-    model: str = Field(min_length=1)
-    temperature: float = Field(gt=0, le=2)
-    max_tokens_per_turn: int = Field(ge=1)
-    max_tokens_per_debate: int = Field(ge=1)
-    max_usd_per_debate: float = Field(gt=0)
-    max_requests_per_minute: int = Field(ge=1)
-    heartbeat_sec: float = Field(gt=0)
-    heartbeat_timeout_sec: float = Field(gt=0)
-    heartbeat_max_consecutive_misses: int = Field(ge=1)
-    child_terminate_grace_sec: float = Field(gt=0)
-    recv_default_timeout_sec: float = Field(gt=0)
-    max_restarts_per_child: int = Field(ge=0)
-    max_message_bytes: int = Field(ge=1)
-    max_clock_skew_sec: float = Field(ge=0)
-    max_retries: int = Field(ge=0)
-    retry_initial_delay_sec: float = Field(ge=0)
-    retry_jitter_sec: float = Field(ge=0)
-    token_drift_warn_threshold: float = Field(ge=0, le=1)
-    summary_max_tokens: int = Field(ge=1)
-    search_cache_max_entries: int = Field(ge=1)
-    score_model: str = Field(min_length=1)
-    judge_model: str = Field(min_length=1)
-    http_timeout_sec: float = Field(gt=0)
-    search_snippet_max_chars: int = Field(ge=1)
-    max_tool_calls_per_turn: int = Field(ge=0, default=2)
-    max_tokens_for_verdict: int = Field(ge=1, default=1200)
-    search: SearchConfig
+_GROQ_LEGACY_MODEL_IDS: dict[str, str] = {
+    "llama3-8b-8192": "llama-3.1-8b-instant",
+    "llama3-70b-8192": "llama-3.3-70b-versatile",
+}
 
 
 def _parse_env_value(key: str, raw: str) -> Any:
@@ -125,6 +84,30 @@ def _apply_env_overrides(data: dict[str, Any]) -> dict[str, Any]:
     return merged
 
 
+def _apply_llm_model_env(data: dict[str, Any]) -> dict[str, Any]:
+    merged = dict(data)
+    raw = get_env("LLM_MODEL")
+    if raw is None or not raw.strip():
+        return merged
+    model = raw.strip()
+    merged["model"] = model
+    merged["score_model"] = model
+    merged["judge_model"] = model
+    return merged
+
+
+def _remap_groq_decommissioned_models(data: dict[str, Any]) -> dict[str, Any]:
+    out = dict(data)
+    for key in ("model", "score_model", "judge_model"):
+        name = out.get(key)
+        if not isinstance(name, str):
+            continue
+        replacement = _GROQ_LEGACY_MODEL_IDS.get(name)
+        if replacement is not None:
+            out[key] = replacement
+    return out
+
+
 def _validate(data: dict[str, Any]) -> Config:
     try:
         return Config.model_validate(data)
@@ -136,8 +119,11 @@ def _validate(data: dict[str, Any]) -> Config:
 
 
 def load_config(path: Path | None = None) -> Config:
-    """Load JSON config; overlay .env; env vars win on overlapping tunables."""
     load_dotenv(_ENV_FILE, override=False)
     cfg_path = Path(get_env("DEBATE_CONFIG", str(path or DEFAULT_CONFIG_PATH)))
     raw = json.loads(cfg_path.read_text(encoding="utf-8"))
-    return _validate(_apply_env_overrides(raw))
+    merged = _apply_llm_model_env(_apply_env_overrides(raw))
+    return _validate(_remap_groq_decommissioned_models(merged))
+
+
+__all__ = ["Config", "ConfigError", "SearchConfig", "load_config"]

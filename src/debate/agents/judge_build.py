@@ -12,19 +12,21 @@ from typing import TYPE_CHECKING, Any
 import httpx
 
 from debate.agents.judge_prompts import (
+    load_round_eval_system,
     load_score_rubric,
     load_summarise_system,
     validate_prompt_files,
 )
 from debate.orchestration.state_machine import Ctx
 from debate.orchestration.supervisor import Supervisor
-from debate.sdk.llm_client import LLMClient
+from debate.sdk.llm_client import LLMClient, resolve_llm_base_url
 from debate.shared.gatekeeper import Gatekeeper
 from debate.shared.judge_setup import register_search_skill
 from debate.shared.logger import Logger
 from debate.shared.router import SkillRouter
 from debate.shared.skills import (
     LLMClientProto,
+    make_round_eval_skill,
     make_score_skill,
     make_summarise_skill,
 )
@@ -54,8 +56,9 @@ def build_judge_agent(
     run_dir = run_logger.run_dir
     gk = Gatekeeper(cfg, logger=run_logger, run_dir=run_dir)
     http = httpx.Client(timeout=cfg.http_timeout_sec)
-    judge_llm = llm or LLMClient(cfg.judge_model, cfg.temperature, http)
-    score_llm = llm or LLMClient(cfg.score_model, cfg.temperature, http)
+    base_url = resolve_llm_base_url()
+    judge_llm = llm or LLMClient(cfg.judge_model, cfg.temperature, http, base_url=base_url)
+    score_llm = llm or LLMClient(cfg.score_model, cfg.temperature, http, base_url=base_url)
     _log("llm_ready", f"judge={cfg.judge_model} score={cfg.score_model}")
 
     router = SkillRouter(cfg)
@@ -75,6 +78,15 @@ def build_judge_agent(
             gk,
             system_prompt=load_summarise_system(),
             model=cfg.judge_model,
+        ),
+    )
+    router.register(
+        "round_eval",
+        make_round_eval_skill(
+            score_llm,
+            gk,
+            system_prompt=load_round_eval_system(),
+            model=cfg.score_model,
         ),
     )
     register_search_skill(router, gk, cfg, http)
@@ -117,7 +129,6 @@ def build_judge_agent(
         on_miss=on_miss,
         on_unrecoverable=on_unrecoverable,
     )
-
     agent = cls(cfg, gk, judge_llm, sup, router, run_logger, watchdog=wd)
     agent._ctx = Ctx(round_limit=cfg.rounds)
     _log("agent_built", f"watchdog={cfg.heartbeat_sec}s")

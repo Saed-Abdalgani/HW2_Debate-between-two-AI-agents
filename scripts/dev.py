@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import importlib.util
 import re
 import subprocess
 import sys
@@ -17,6 +18,21 @@ SECRET_PATTERNS = [
 
 def _run(cmd: list[str]) -> int:
     return subprocess.call(cmd, cwd=ROOT)
+
+
+def _require_uv_module() -> None:
+    """``dev.py`` shells out as ``<this interpreter> -m uv``; fail fast with a clear hint."""
+    if importlib.util.find_spec("uv") is None:
+        exe = sys.executable
+        print(
+            "This Python does not have the 'uv' package installed.\n"
+            f"  Interpreter: {exe}\n"
+            "  Fix (Windows): install into this runtime, then use py -3 for dev.py:\n"
+            f"    py -3 -m pip install uv\n"
+            f"    py -3 {ROOT / 'scripts' / 'dev.py'} check\n",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
 
 def scan_secrets() -> int:
@@ -56,6 +72,8 @@ def main() -> None:
         )
         sys.exit(2)
     cmd = sys.argv[1]
+    if cmd not in {"scan"}:
+        _require_uv_module()
     uv = [sys.executable, "-m", "uv"]
     steps: dict[str, list[str] | None] = {
         "setup": None,

@@ -12,7 +12,7 @@ from debate.agents.judge_agent_ops import (
     log_verdict,
     render_verdict,
 )
-from debate.agents.judge_rounds import phase_for_round, score_reply, summarise_round
+from debate.agents.judge_rounds import evaluate_round_batched, phase_for_round
 from debate.agents.judge_tie_break import tie_break
 from debate.agents.judge_verdict import validate_verdict_stages
 from debate.orchestration.state_machine import Event, State, transition
@@ -30,7 +30,6 @@ def step(agent: JudgeAgent, timeout: float) -> VerdictPayload | None:
     if s == State.PRO_TURN:
         agent._last_pro = child_turn(agent, "pro", phase_for_round(agent._ctx.round), timeout)
         agent._state = transition(s, Event.PRO_REPLY, agent._ctx)
-        score_reply(agent, "pro", agent._last_pro, agent._ctx.round, agent._turn_id)
         agent._state = transition(agent._state, Event.SCORED, agent._ctx)
         agent._pulse("pro")
     elif s == State.CON_TURN:
@@ -42,8 +41,9 @@ def step(agent: JudgeAgent, timeout: float) -> VerdictPayload | None:
             opponent=agent._last_pro,
         )
         agent._state = transition(s, Event.CON_REPLY, agent._ctx)
-        score_reply(agent, "con", agent._last_con, agent._ctx.round, agent._turn_id)
-        summarise_round(agent, agent._last_pro, agent._last_con, agent._turn_id)
+        evaluate_round_batched(
+            agent, agent._last_pro, agent._last_con, agent._ctx.round, agent._turn_id
+        )
         agent._state = transition(agent._state, Event.SCORED, agent._ctx)
         agent._pulse("con")
     elif s == State.CLOSING:

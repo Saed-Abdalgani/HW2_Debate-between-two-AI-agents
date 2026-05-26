@@ -19,7 +19,13 @@ class ToolStormStubLLM:
     storm_count: int = 3
     _calls: int = field(default=0, init=False)
 
-    def chat(self, messages: list[dict[str, Any]], max_tokens: int) -> ChatResult:
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        *,
+        response_format: dict[str, Any] | None = None,
+    ) -> ChatResult:
         self._calls += 1
         if self._calls <= self.storm_count:
             text = f"{_TOOL}query{self._calls}"
@@ -35,7 +41,13 @@ class CountingStubLLM:
     inner: Any = field(default_factory=EchoStubLLM)
     call_counts: dict[str, int] = field(default_factory=dict)
 
-    def chat(self, messages: list[dict[str, Any]], max_tokens: int) -> ChatResult:
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        *,
+        response_format: dict[str, Any] | None = None,
+    ) -> ChatResult:
         role = "unknown"
         for msg in messages:
             if msg.get("role") == "system":
@@ -46,7 +58,7 @@ class CountingStubLLM:
                     role = "con"
                 break
         self.call_counts[role] = self.call_counts.get(role, 0) + 1
-        return self.inner.chat(messages, max_tokens)
+        return self.inner.chat(messages, max_tokens, response_format=response_format)
 
 
 @dataclass
@@ -56,7 +68,13 @@ class FactCheckStubLLM:
     model: str = "gpt-4o-mini"
     marker: str = "London is the capital of France"
 
-    def chat(self, messages: list[dict[str, Any]], max_tokens: int) -> ChatResult:
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        *,
+        response_format: dict[str, Any] | None = None,
+    ) -> ChatResult:
         blob = "\n".join(str(m.get("content", "")) for m in messages)
         tool_rounds = sum(1 for m in messages if m.get("role") == "assistant")
         if self.marker in blob and tool_rounds == 0:

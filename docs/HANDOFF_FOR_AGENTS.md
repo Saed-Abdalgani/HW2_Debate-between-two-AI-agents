@@ -42,7 +42,7 @@
 | `src/debate/agents/judge_agent_runner.py` | `run_debate_impl` — lifecycle, watchdog stop |
 | `src/debate/agents/judge_runner_fsm.py` | FSM `step()` — pro/con turns, scoring hooks, verdict, tie-break |
 | `src/debate/agents/judge_ops_child.py` | `child_turn`, `closing_round`; logs `[OPS]` |
-| `src/debate/agents/judge_rounds.py` | `score_reply`, `summarise_round`; logs `[ROUNDS]` |
+| `src/debate/agents/judge_rounds.py` | `score_reply`, `evaluate_round_batched`, `summarise_round`; logs `[ROUNDS]` |
 | `src/debate/agents/judge_child*.py` | IPC to children (split across envelope/handlers modules) |
 | `src/debate/orchestration/state_machine.py` | Pure FSM; `Ctx.round` starts at **1**; round increments in `_advance_round` after **Con** scored for the round |
 | `src/debate/shared/gatekeeper.py` | Budget / execute wrapper |
@@ -62,15 +62,17 @@ These were observed in real terminal runs (Windows, Rich `Live` + stderr logging
 
 1. **`[OPS]` / `[ROUNDS]` / `[RUNNER]`** — During Rich `Live`, these lines are appended to `runs/<id>/judge.diag.log` instead of stderr so the stdout live panel is not corrupted. After the debate, stderr prints the log path. Other stderr (e.g. `[BUILD]`) may still appear before the live session starts.
 
-2. **`Speaker` often shows `PRO` when `[OPS] con_reply` just appeared** — By design order in `judge_runner_fsm.py`: `child_turn` logs reply → **`score_reply`** (judge work, no `_pulse`) → **`_pulse("con")`**. So during Con’s scoring phase, panel can still show last speaker **PRO**. Misleading but consistent with current code.
+2. **`Speaker` often shows `PRO` when `[OPS] con_reply` just appeared** — By design order in `judge_runner_fsm.py`: `child_turn` logs the Con reply → **`evaluate_round_batched`** (judge LLM, no `_pulse`) → **`_pulse("con")`**. So during scoring, the panel can still show last speaker **PRO**. Misleading but consistent with current code.
 
-3. **`budget_exhausted` + `ABORT` right after the last scored round (often at verdict)** — Default `max_requests_per_minute` used to be **30** while the judge process performs **three** gatekeeper LLM calls per content round (score Pro, score Con, summarise) plus **one** for the verdict → **3 × rounds + 1** requests (e.g. **31** for `rounds: 10`), so RPM tripped with a **small token/USD ledger** (RPM is separate from token totals). Defaults were raised and per-call output caps aligned with `max_tokens_for_verdict`; if you still hit RPM, raise `max_requests_per_minute` in `config/debate.json`. **`aborted_verdict`** returns placeholder winner **con** and canned reasons — not a judged outcome.
+3. **`budget_exhausted` + `ABORT` right after the last scored round (often at verdict)** — Default `max_requests_per_minute` used to be **30** while the judge process performed **three** gatekeeper LLM calls per content round (score Pro, score Con, summarise) plus **one** for the verdict, so RPM tripped easily. The judge now uses **one** `round_eval` call per content round (plus verdict), but RPM is still a separate cap; raise `max_requests_per_minute` in `config/debate.json` if needed. **`aborted_verdict`** returns placeholder winner **con** and canned reasons — not a judged outcome.
 
 4. **Menu tunables:** Prompt says `Field (rounds/model/budget/tokens)` — entering `3` yields `unknown field`; must type the **word** `budget` etc.
 
-5. **Tie-break display scores** (`judge_tie_break_support.verdict_scores_for_winner`) may **bump** verdict scores so winner strictly leads raw cumulative totals on numeric ties — intentional for schema alignment; reasons still cite cumulative story in text.
+5. **Tie-break display scores** (`judge_tie_break_support.verdict_scores_for_winner`) normalize cumulative per-round (0-100) totals into 0-100 verdict display scores, then may **bump** so the winner strictly leads on numeric ties; reasons still cite raw cumulative totals in text.
 
-6. **Debater replies:** `ipc_safe_reply_text` in `debater_compose_format.py` collapses newlines for single-line JSON IPC.
+6. **Judge round work** — After both sides speak in a round, the judge uses one **round_eval** LLM call (scores Pro + Con + round summary) instead of three separate calls; `score` / `summarise` skills remain for tests and replay compatibility.
+
+7. **Debater replies:** `ipc_safe_reply_text` in `debater_compose_format.py` collapses newlines for single-line JSON IPC.
 
 ---
 

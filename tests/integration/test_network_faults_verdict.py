@@ -36,7 +36,13 @@ def test_simulated_bad_json_verdict(tmp_path: Path, monkeypatch: pytest.MonkeyPa
             super().__init__()
             self.verdict_calls = 0
 
-        def chat(self, messages: list[dict[str, Any]], max_tokens: int) -> ChatResult:
+        def chat(
+            self,
+            messages: list[dict[str, Any]],
+            max_tokens: int,
+            *,
+            response_format: dict[str, Any] | None = None,
+        ) -> ChatResult:
             last = messages[-1]["content"]
             if "Return final verdict JSON" in last:
                 self.verdict_calls += 1
@@ -51,7 +57,7 @@ def test_simulated_bad_json_verdict(tmp_path: Path, monkeypatch: pytest.MonkeyPa
                     tokens_out=10,
                     model="stub",
                 )
-            return super().chat(messages, max_tokens)
+            return super().chat(messages, max_tokens, response_format=response_format)
 
     run = tmp_path / "runs" / "full"
     logger = Logger(run, root=tmp_path)

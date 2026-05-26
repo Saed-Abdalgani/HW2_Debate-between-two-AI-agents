@@ -21,7 +21,9 @@ python -m uv sync --all-extras
 python -m uv run python -m debate.main
 ```
 
-Expected stdout (current scaffold phase): `HW2 Debate scaffold OK`
+Expected: default launch shows the Rich menu (`HW2 AI Debate`, choices 1–6). With
+`--non-interactive --stub`, the process runs one full stub debate and prints a
+final line like `Winner: pro  run=.../runs/<timestamp>` then exits `0` on success.
 
 Equivalent one-liner:
 

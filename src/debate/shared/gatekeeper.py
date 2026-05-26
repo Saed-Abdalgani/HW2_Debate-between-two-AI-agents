@@ -45,6 +45,7 @@ class Gatekeeper:
             cfg.max_tokens_per_turn,
             cfg.summary_max_tokens,
             cfg.max_tokens_for_verdict,
+            cfg.round_eval_max_tokens,
         )
         self._caps = BudgetCaps(
             max_tokens_per_turn=max_out,
@@ -126,7 +127,10 @@ class Gatekeeper:
                 )
                 if attempt >= self.cfg.max_retries:
                     raise
-                time.sleep(delay * (2**attempt) + random.uniform(0, jitter))
+                backoff = delay * (2**attempt) + random.uniform(0, jitter)
+                ra = getattr(exc, "retry_after_sec", None) or 0.0
+                wait = max(backoff, ra) if ra > 0 else backoff
+                time.sleep(wait)
         raise RuntimeError("retry loop exhausted")
 
     def _warn_drift(self, est: Usage, act: Usage, role: str, turn_id: int) -> None:

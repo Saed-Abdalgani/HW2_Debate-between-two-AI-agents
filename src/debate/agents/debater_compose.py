@@ -76,10 +76,14 @@ class DebaterComposeMixin:
                 ),
             )
         )
-        env = self.recv()
-        if env.type != MessageType.TOOL_RESULT:
+        while True:
+            env = self.recv()
+            if env.type == MessageType.PING:
+                self._reply_pong(env.turn_id)
+                continue
+            if env.type == MessageType.TOOL_RESULT:
+                return env.payload  # type: ignore[return-value]
             raise ValueError(f"expected tool_result, got {env.type}")
-        return env.payload  # type: ignore[return-value]
 
     # pyrefly: ignore [invalid-annotation]
     def _sync_prompt_context(self: DebaterAgent, prompt: PromptPayload) -> None:

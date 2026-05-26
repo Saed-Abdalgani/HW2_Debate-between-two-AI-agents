@@ -14,6 +14,7 @@ from debate.sdk.payloads import (
     DebatePhase,
     InitPayload,
     MessageType,
+    PingPayload,
     PromptPayload,
     Role,
     SearchHit,
@@ -91,6 +92,45 @@ def test_tool_call_cap(cfg) -> None:
     assert len(tool_calls) == 2
     assert reply.text.startswith("TOOL:search:query3")
     assert reply.tokens_in > 0
+
+
+@pytest.mark.unit
+def test_proxy_search_interleaved_ping(cfg) -> None:
+    """Watchdog may send ping while child waits for judge tool_result."""
+    inbox: queue.Queue[Envelope] = queue.Queue()
+    outbox: list[Envelope] = []
+
+    def fake_send(env: Envelope) -> None:
+        outbox.append(env)
+        if env.type == MessageType.TOOL_CALL:
+            tid = env.turn_id
+            inbox.put(_env(MessageType.PING, PingPayload(), turn_id=tid))
+            inbox.put(
+                _env(
+                    MessageType.TOOL_RESULT,
+                    ToolResultPayload(
+                        skill="search",
+                        hits=[SearchHit(title="hit", url="https://x", snippet="fact")],
+                        cached=False,
+                    ),
+                    turn_id=tid,
+                )
+            )
+
+    agent = ProAgent(Role.PRO, cfg, Gatekeeper(cfg), ToolStormStubLLM(storm_count=1), None, None)  # type: ignore[arg-type]
+    agent.recv = lambda: inbox.get(timeout=3)  # type: ignore[method-assign]
+    agent.send = fake_send  # type: ignore[method-assign]
+    agent._on_init(
+        InitPayload(motion="Test motion", stance="pro", rounds=3, max_tokens_per_turn=100)
+    )
+    reply = agent.compose_reply(
+        PromptPayload(phase=DebatePhase.ARGUE, context=[], opponent_last="They said X."),
+        turn_id=2,
+    )
+    assert "Final argument" in reply.text
+    types = [e.type for e in outbox]
+    assert types[0] == MessageType.TOOL_CALL
+    assert MessageType.PONG in types
 
 
 @pytest.mark.unit

@@ -25,7 +25,7 @@ from debate.shared.gatekeeper import Gatekeeper
 class _NoiseStubLLM:
     model = "gpt-4o-mini"
 
-    def chat(self, messages: list, max_tokens: int) -> ChatResult:
+    def chat(self, messages: list, max_tokens: int, *, response_format=None) -> ChatResult:
         return ChatResult(
             text=(
                 "**Bold** claim: He said \"nested 'quotes'\" then `code` — "
@@ -40,7 +40,7 @@ class _NoiseStubLLM:
 class _NlStubLLM:
     model = "gpt-4o-mini"
 
-    def chat(self, messages: list, max_tokens: int) -> ChatResult:
+    def chat(self, messages: list, max_tokens: int, *, response_format=None) -> ChatResult:
         return ChatResult(
             text='First line.\nSecond "line" with\nnewlines.',
             tokens_in=2,

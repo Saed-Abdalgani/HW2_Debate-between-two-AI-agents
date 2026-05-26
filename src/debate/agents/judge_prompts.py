@@ -18,6 +18,7 @@ _PROMPTS = _ROOT / "config" / "prompts"
 _JUDGE_TEMPLATE = _PROMPTS / "judge.system.txt"
 _SCORE_RUBRIC = _PROMPTS / "score.rubric.txt"
 _SUMMARISE_TEMPLATE = _PROMPTS / "summarise.system.txt"
+_ROUND_EVAL_TEMPLATE = _PROMPTS / "round_eval.system.txt"
 
 _cache: dict[str, str] = {}
 
@@ -28,7 +29,7 @@ _LOG_PREFIX = "[PROMPTS]"
 
 def validate_prompt_files() -> None:
     missing: list[str] = []
-    for path in (_JUDGE_TEMPLATE, _SCORE_RUBRIC, _SUMMARISE_TEMPLATE):
+    for path in (_JUDGE_TEMPLATE, _SCORE_RUBRIC, _SUMMARISE_TEMPLATE, _ROUND_EVAL_TEMPLATE):
         if not path.exists():
             missing.append(str(path))
     if missing:
@@ -81,6 +82,13 @@ def load_score_rubric() -> str:
     return rubric
 
 
+def load_round_eval_system() -> str:
+    template = _read_cached(_ROUND_EVAL_TEMPLATE)
+    if not template.strip():
+        _log("round_eval_empty", "round_eval.system.txt is empty")
+    return template
+
+
 def load_summarise_system() -> str:
     template = _read_cached(_SUMMARISE_TEMPLATE)
     if not template.strip():
@@ -107,7 +115,7 @@ __all__ = [
     "clear_cache",
     "detect_prompt_injection",
     "format_retry_note",
-    "load_judge_system",
+    "load_round_eval_system",
     "load_score_rubric",
     "load_summarise_system",
     "load_verdict_schema",

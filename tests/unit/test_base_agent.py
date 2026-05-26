@@ -22,7 +22,7 @@ from debate.shared.gatekeeper import Gatekeeper
 
 
 class _StubLLM:
-    def chat(self, messages, max_tokens):
+    def chat(self, messages, max_tokens, *, response_format=None):
         from debate.sdk.llm_client import ChatResult
 
         return ChatResult(text="ok", tokens_in=1, tokens_out=1, model="gpt-4o-mini")

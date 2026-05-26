@@ -38,3 +38,16 @@ def test_empty_history_defaults_to_con() -> None:
     assert verdict.winner == "con"
     assert verdict.scores.con > verdict.scores.pro
     assert len(verdict.reasons) >= 3
+
+
+@pytest.mark.unit
+def test_high_cumulative_totals_normalized_to_verdict_schema() -> None:
+    """Cumulative 0-100-per-round scores can sum > 100; VerdictScores must stay <= 100."""
+    history = [
+        ScorePayload(for_role="pro", round=r, points=[_LONG], score=82.0) for r in range(1, 11)
+    ] + [ScorePayload(for_role="con", round=r, points=[_LONG], score=74.0) for r in range(1, 11)]
+    verdict = tie_break(history)
+    assert verdict.winner == "pro"
+    assert verdict.scores.pro <= 100.0
+    assert verdict.scores.con <= 100.0
+    assert verdict.scores.pro > verdict.scores.con

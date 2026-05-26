@@ -135,3 +135,27 @@ def test_build_estimate_uses_max_tokens_per_turn(gk: Gatekeeper) -> None:
     est = gk.build_estimate([{"role": "user", "content": "hi"}], "gpt-4o-mini")
     assert est.tokens_out == gk.cfg.max_tokens_per_turn
     assert est.usd > Decimal("0")
+
+
+@pytest.mark.unit
+def test_retry_honors_provider_retry_after_sec(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    cfg = load_config().model_copy(
+        update={"retry_initial_delay_sec": 0.0, "retry_jitter_sec": 0.0, "max_retries": 2}
+    )
+    run = tmp_path / "runs" / "t_ra"
+    gk = Gatekeeper(cfg, logger=Logger(run, root=tmp_path), run_dir=run)
+    sleeps: list[float] = []
+    monkeypatch.setattr("debate.shared.gatekeeper.time.sleep", lambda s: sleeps.append(float(s)))
+    n = {"c": 0}
+
+    def flaky() -> _Result:
+        n["c"] += 1
+        if n["c"] < 2:
+            raise TransientProviderError("HTTP 429", retry_after_sec=4.0)
+        return _Result(1, 1)
+
+    est = Usage(tokens_in=1, tokens_out=1, usd=Decimal("0.0001"))
+    gk.execute(flaky, estimate=est, role="pro", turn_id=9, model="gpt-4o-mini")
+    assert sleeps and sleeps[0] >= 4.0

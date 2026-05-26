@@ -30,7 +30,13 @@ class _StubLLM:
     tokens_in: int = 5
     tokens_out: int = 5
 
-    def chat(self, messages: list[dict[str, Any]], max_tokens: int) -> ChatResult:
+    def chat(
+        self,
+        messages: list[dict[str, Any]],
+        max_tokens: int,
+        *,
+        response_format=None,
+    ) -> ChatResult:
         return ChatResult(
             text=self.response,
             tokens_in=self.tokens_in,

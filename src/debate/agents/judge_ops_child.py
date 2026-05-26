@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import TYPE_CHECKING
 
 from debate.agents.judge_child import recv_reply, send_prompt, shutdown_child
@@ -36,8 +37,14 @@ def child_turn(
         turn_id=agent._turn_id,
     )
     agent._ctx.last_outbound_per_role[role] = phase.value
-    env = recv_reply(agent.supervisor, role, agent.router, timeout=timeout)
-    if env.type != MessageType.REPLY:
+    while True:
+        env = recv_reply(agent.supervisor, role, agent.router, timeout=timeout)
+        sys.stderr.write(f"[DEBUG] IPC got: {env.type}\n")
+        if env.type == MessageType.REPLY:
+            break
+        if env.type == MessageType.EVENT:
+            _log(f"{role}_ipc_event", f"turn={agent._turn_id}")
+            continue
         raise ValueError(f"expected reply from {role}, got {env.type}")
     text = env.payload.text  # type: ignore[union-attr]
     _validate_child_reply(text, role, agent._turn_id)

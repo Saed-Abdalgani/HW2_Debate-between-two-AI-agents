@@ -14,7 +14,7 @@ import httpx
 
 from debate.agents.stub_llm import stub_from_env
 from debate.orchestration.ipc import JsonPipeReader, JsonPipeWriter
-from debate.sdk.llm_client import LLMClient
+from debate.sdk.llm_client import LLMClient, resolve_llm_base_url
 from debate.sdk.payloads import Role
 from debate.sdk.schemas import SchemaLimits
 from debate.shared.config import Config, load_config
@@ -53,7 +53,7 @@ def build_debater_llm(cfg: Config) -> LLMClientProto:
     if stub is not None:
         return stub
     http = httpx.Client(timeout=cfg.http_timeout_sec)
-    return LLMClient(cfg.model, cfg.temperature, http)
+    return LLMClient(cfg.model, cfg.temperature, http, base_url=resolve_llm_base_url())
 
 
 def _register_shutdown_signals() -> None:

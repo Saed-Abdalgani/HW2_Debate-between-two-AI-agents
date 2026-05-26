@@ -14,11 +14,6 @@ _DEFAULT_PATH = _ROOT / "config" / "pricing.json"
 _QUANT = Decimal("0.000001")
 
 
-class UnknownModelError(Exception):
-    def __init__(self, model: str) -> None:
-        super().__init__(f"no pricing entry for model: {model}")
-
-
 @lru_cache(maxsize=4)
 def load_pricing_table(path: Path | None = None) -> dict[str, dict[str, Decimal]]:
     raw = json.loads((path or _DEFAULT_PATH).read_text(encoding="utf-8"))
@@ -34,10 +29,14 @@ def load_pricing_table(path: Path | None = None) -> dict[str, dict[str, Decimal]
 def price(
     usage: Usage, model: str, *, table: dict[str, dict[str, Decimal]] | None = None
 ) -> Decimal:
-    """Return USD cost for token usage; round half-up to 6 dp."""
+    """Return USD cost for token usage; round half-up to 6 dp.
+
+    Models missing from the pricing table are charged ``$0`` so new or
+    provider-specific IDs (for example Groq) do not abort the debate.
+    """
     rates = (table or load_pricing_table()).get(model)
     if rates is None:
-        raise UnknownModelError(model)
+        return Decimal("0").quantize(_QUANT, rounding=ROUND_HALF_UP)
     usd = (
         Decimal(usage.tokens_in) / Decimal(1000) * rates["input_usd_per_1k"]
         + Decimal(usage.tokens_out) / Decimal(1000) * rates["output_usd_per_1k"]

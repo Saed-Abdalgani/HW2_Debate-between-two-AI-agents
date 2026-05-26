@@ -40,9 +40,12 @@ def handle_event(env: Envelope) -> None:
         return
     if env.payload.name != "agent_error":
         return
-    data = getattr(env.payload, "data", {})
+    data = getattr(env.payload, "data", {}) or {}
     if data.get("error") == "BudgetExceeded":
         raise BudgetExceeded(data.get("detail", "child budget exhausted"), {})
+    exc_name = data.get("error", "Unknown")
+    detail = data.get("detail", "")
+    raise RuntimeError(f"child agent_error ({exc_name}): {detail}")
 
 
 def _log(event: str, detail: str = "") -> None:

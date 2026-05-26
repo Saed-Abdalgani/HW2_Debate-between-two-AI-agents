@@ -84,6 +84,7 @@ def recv_reply(
 ) -> Envelope:
     while True:
         env = supervisor.recv(role, timeout=timeout)
+        sys.stderr.write(f"[DEBUG] IPC recv {role}: type={env.type} turn_id={env.turn_id}\n")
         if env.type == MessageType.TOOL_CALL:
             handle_tool_call(supervisor, role, router, env)
             continue
@@ -91,6 +92,7 @@ def recv_reply(
             continue
         if env.type == MessageType.EVENT:
             handle_event(env)
+            continue
         return env
 
 
